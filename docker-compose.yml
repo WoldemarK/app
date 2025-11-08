@@ -38,6 +38,26 @@ services:
       retries: 10
       start_period: 10s
 
+  person-service:
+    image: postgres:17
+    container_name:  person-service
+    environment:
+      POSTGRES_DB:  person-service
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: 123
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/person-service/data
+    networks:
+      - individuals-api-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U keycloak -d keycloak" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
 networks:
   individuals-api-network:
     driver: bridge
