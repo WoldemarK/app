@@ -1,0 +1,49 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.7'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+description = 'individuals-api'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // SECURITY
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // KEYCLOAK
+    implementation 'org.keycloak:keycloak-admin-client:21.1.1'
+    implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
+    implementation 'org.glassfish:jakarta.el:4.0.2'
+
+    // OPEN API
+    implementation "io.swagger.core.v3:swagger-annotations:2.2.21"
+    implementation "org.springdoc:springdoc-openapi-starter-webflux-ui:2.2.0"
+
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
