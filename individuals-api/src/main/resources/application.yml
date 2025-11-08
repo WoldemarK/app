@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: api-individuals
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: client-api-individuals
+            authorization-grant-type: authorization_code
+            scope: openid
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8080/realms/realm-api-individuals
+            user-name-attribute: preferred_username
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/realm-api-individuals
+
+
+server:
+  port: 8081
+
+keycloak:
+  admin:
+    server-url: http://localhost:8080
+    client-id: admin-cli
+    admin-username: admin
+    admin-password: admin
+
+TOKEN-URL: http://localhost:8080/realms/realm-api-individuals/protocol/openid-connect/token
+keycloak-default-role: user
+keycloak-realm-name: realm-api-individuals
+keycloak-realm-admin: master
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoint:
+    prometheus:
+      enabled: true
