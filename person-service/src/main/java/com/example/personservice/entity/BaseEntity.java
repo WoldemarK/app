@@ -24,6 +24,7 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = false)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class BaseEntity {
+
     @Id
     @GeneratedValue
     @Column(name = "id", updatable = false, nullable = false)
