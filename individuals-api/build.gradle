@@ -2,10 +2,26 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.7'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.openapi.generator' version '7.6.0'
 }
+openApiGenerate {
+    generatorName = "spring"
+    inputSpec.set("${projectDir}/openapi/individuals-api.yaml")
+    outputDir.set(file("build/generated-src/openapi").absolutePath)
+    apiPackage = "com.example.individuals-api.api.client"
+    modelPackage = "com.example.individuals-api.api.dto"
+    validateSpec = false
 
+    configOptions = [
+            library        : "spring-cloud",
+            useFeignClients: "true",
+            interfaceOnly  : "true",
+            useJakartaEe   : "true"
+    ]
+}
+compileJava.dependsOn 'openApiGenerate'
 group = 'com.example'
-version = '0.0.1-SNAPSHOT'
+version = '1.0.0'
 description = 'individuals-api'
 
 java {
