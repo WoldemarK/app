@@ -1,8 +1,6 @@
 package com.example.personservice.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -16,6 +14,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.envers.Audited;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
@@ -25,7 +24,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "person.countries")
-public class Countries {
+public class Countries implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

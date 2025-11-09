@@ -8,9 +8,11 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.hibernate.envers.Audited;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @Entity
 @Audited
@@ -24,7 +26,7 @@ public class Individuals extends BaseEntity{
     private String phoneNumber;
     private String passportNumber;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private User userId;
 
 

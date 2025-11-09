@@ -1,15 +1,18 @@
 package com.example.personservice.service;
 
+import com.example.personservice.client.ClientApi;
+import com.example.personservice.dto.UserDto;
 import com.example.personservice.entity.Address;
 import com.example.personservice.entity.Countries;
 import com.example.personservice.entity.User;
 import com.example.personservice.repository.AddressRepository;
-import com.example.personservice.repository.CountryRepository;
 import com.example.personservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -18,6 +21,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
+    private final ClientApi clientApi;
 
     @Transactional
     public User createUser(User user) {
@@ -28,7 +32,21 @@ public class UserService {
             log.info("User created: {}", created);
             userRepository.save(created);
         }
+        UserDto userDto = UserDto.builder()
+                .uuid(created.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .password(created.getSecretKey())
+                .build();
+        clientApi.create(userDto);
+
         return created;
+    }
+
+    @Transactional(readOnly = true)
+    public User getUserInformation(UUID userId) {
+        return userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: {}" + userId));
     }
 
     private static Countries getCountries(User user) {
