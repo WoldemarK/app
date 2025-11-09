@@ -21,3 +21,7 @@ Content-Type: application/json
     }
   }
 }
+
+###
+GET  http://localhost:8098/api/users/ID
+Content-Type: application/json

@@ -16,7 +16,7 @@ import org.hibernate.envers.Audited;
 
 import java.time.LocalDateTime;
 
-@EqualsAndHashCode(callSuper = true)
+
 @Data
 @Entity
 @Builder
@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "person.addresses")
+@EqualsAndHashCode(callSuper = true)
 public class Address extends BaseEntity {
 
     private String city;

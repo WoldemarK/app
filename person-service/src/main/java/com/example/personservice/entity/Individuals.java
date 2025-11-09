@@ -12,7 +12,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.hibernate.envers.Audited;
 
-@EqualsAndHashCode(callSuper = true)
+
 @Data
 @Entity
 @Audited
@@ -20,7 +20,8 @@ import org.hibernate.envers.Audited;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "person.individuals")
-public class Individuals extends BaseEntity{
+@EqualsAndHashCode(callSuper = true)
+public class Individuals extends BaseEntity {
 
     private String status;
     private String phoneNumber;

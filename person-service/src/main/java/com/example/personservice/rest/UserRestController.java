@@ -17,22 +17,20 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/users")
 public class UserRestController {
 
     private final UserService userService;
-
-    public UserRestController(UserService userService) {
-        this.userService = userService;
-    }
 
     @PostMapping("/full")
     public ResponseEntity<User> allInformationUser(@RequestBody User user) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(user));
 
     }
+
     @GetMapping("/{id}")
-    public ResponseEntity<User>getAllInformationUsers(@PathVariable UUID id) {
+    public ResponseEntity<User> getAllInformationUsers(@PathVariable UUID id) {
         return ResponseEntity.ok(userService.getUserInformation(id));
     }
 }
