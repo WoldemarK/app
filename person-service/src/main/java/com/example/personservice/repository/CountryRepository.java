@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 
 
 @Repository
-public interface CountriesRepository extends JpaRepository<Countries, Integer> {
+public interface CountryRepository extends JpaRepository<Countries, Integer> {
 
 }

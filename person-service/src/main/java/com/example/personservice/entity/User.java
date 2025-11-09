@@ -10,15 +10,18 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.hibernate.envers.Audited;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @Entity
+@Audited
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "person.users")
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class User extends BaseEntity {
 
     private String email;

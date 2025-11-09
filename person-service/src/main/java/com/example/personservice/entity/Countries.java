@@ -14,16 +14,17 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.envers.Audited;
 
 import java.time.LocalDateTime;
 
 @Data
 @Entity
+@Audited
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "person.countries")
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class Countries {
 
     @Id
