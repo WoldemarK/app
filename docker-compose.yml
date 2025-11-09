@@ -28,7 +28,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - keycloak_postgres_data:/var/lib/postgresql/data
     networks:
       - individuals-api-network
     healthcheck:
@@ -38,21 +38,24 @@ services:
       retries: 10
       start_period: 10s
 
-  person-service:
+  postgres-person:
     image: postgres:17
-    container_name:  person-service-app
+    container_name: postgres-person
     environment:
-      POSTGRES_DB:  person-service-app
+      POSTGRES_DB: postgres-person
       POSTGRES_USER: user
       POSTGRES_PASSWORD: 123
     ports:
       - "5434:5432"
     volumes:
-      - postgres_data:/var/lib/data/person-service-app
+      - person_postgres_data:/var/lib/postgresql/data  # ← исправлено!
+    networks:
+      - individuals-api-network
 
 networks:
   individuals-api-network:
     driver: bridge
 
 volumes:
-  postgres_data:
+  keycloak_postgres_data:
+  person_postgres_data:
