@@ -34,6 +34,7 @@ public class UserService {
         }
         UserDto userDto = UserDto.builder()
                 .uuid(created.getId())
+                .username(user.getFirstName())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .email(user.getEmail())

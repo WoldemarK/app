@@ -11,6 +11,7 @@ public record UserDto
                 String email,
                 String lastName,
                 String firstName,
-                String password
+                String password,
+                String username
         ) {
 }
