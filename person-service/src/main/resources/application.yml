@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: person-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5434/person-service-app
+    username: user
+    password: 123
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: public
+    database: postgresql
+
+#  jackson:
+#    serialization:
+#      fail-on-empty-beans: false
+
+
+server:
+  port: 8098
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+
+
+feignClientUrl: http://localhost:8081/api/v1/auth/registration
+feign:
+  client:
+    config:
+      jsonPlaceholderClient:
+        connectTimeout: 5000
+        readTimeout: 10000
+        loggerLevel: basic
