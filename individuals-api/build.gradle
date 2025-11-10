@@ -78,6 +78,13 @@ dependencies {
     implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+
+    //Метрика
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation "net.logstash.logback:logstash-logback-encoder:7.4"
+    implementation "io.opentelemetry:opentelemetry-exporter-otlp"
+    implementation "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter:2.6.0"
+
 }
 
 tasks.named('test') {

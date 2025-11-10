@@ -12,6 +12,7 @@ public record UserDto
                 String lastName,
                 String firstName,
                 String password,
-                String username
+                String username,
+                boolean filled
         ) {
 }

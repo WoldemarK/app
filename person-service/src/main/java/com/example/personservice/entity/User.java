@@ -28,6 +28,7 @@ public class User extends BaseEntity {
     private String firstName;
     private String secretKey;
 
+
     @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private Address addressId;
 }
