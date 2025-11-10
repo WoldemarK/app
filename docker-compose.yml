@@ -88,7 +88,6 @@ services:
       SPRING_PROFILES_ACTIVE: docker
     depends_on:
      - keycloak
-
     networks:
       - individuals-api-network
 
