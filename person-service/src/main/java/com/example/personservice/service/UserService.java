@@ -9,6 +9,7 @@ import com.example.personservice.repository.AddressRepository;
 import com.example.personservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,24 +26,52 @@ public class UserService {
 
     @Transactional
     public User createUser(User user) {
-        Countries countries = getCountries(user);
-        Address address = getAddress(user, countries);
-        User created = getUser(user, address);
-        if (created != null) {
-            log.info("User created: {}", created);
-            userRepository.save(created);
+        try {
+            MDC.put("userId", String.valueOf(user.getId()));
+            MDC.put("firstName", user.getFirstName());
+            MDC.put("lastName", user.getLastName());
+            MDC.put("email", user.getEmail());
+            MDC.put("filed", String.valueOf(user.isFilled()));
+            log.info("Received user");
+
+            Countries countries = getCountries(user);
+            MDC.put("id", String.valueOf(countries.getId()));
+            MDC.put("name", countries.getName());
+            MDC.put("alpha2", countries.getAlpha2());
+            MDC.put("alpha3", countries.getAlpha3());
+            MDC.put("status", countries.getStatus());
+            log.info("Received countries");
+
+            Address address = getAddress(user, countries);
+            MDC.put("city", address.getCity());
+            MDC.put("state", address.getState());
+            MDC.put("zipCode", address.getZipCode());
+            MDC.put("address", address.getAddress());
+            log.info("Received address");
+
+            User created = getUser(user, address);
+
+            if (created != null) {
+                log.info("User created: {}", created);
+                userRepository.save(created);
+            }
+            clientApi.create
+                    (
+                            UserDto.builder()
+                                    .uuid(created.getId())
+                                    .username(user.getFirstName())
+                                    .firstName(user.getFirstName())
+                                    .lastName(user.getLastName())
+                                    .email(user.getEmail())
+                                    .password(created.getSecretKey())
+                                    .filled(user.isFilled())
+                                    .build()
+                    );
+            log.info(user.toString());
+            return created;
+        } finally {
+            MDC.clear();
         }
-        UserDto userDto = UserDto.builder()
-                .uuid(created.getId())
-                .username(user.getFirstName())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .email(user.getEmail())
-                .password(created.getSecretKey())
-                .build();
-        clientApi.create(userDto);
-        log.info(user.toString());
-        return created;
     }
 
     @Transactional(readOnly = true)
