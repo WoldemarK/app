@@ -2,17 +2,66 @@ spring:
   application:
     name: person-service
 
+# Общие настройки (если нужны для всех профилей) можно оставить здесь,
+# но лучше вынести всё в профили, если значения различаются.
+
+---
+# Профиль: local (для разработки на localhost)
+#spring:
+#  config:
+#    activate:
+#      on-profile: local
+#  datasource:
+#    url: jdbc:postgresql://localhost:5434/postgres-person
+#    username: user
+#    password: 123
+#    driver-class-name: org.postgresql.Driver
+#  jpa:
+#    database-platform: org.hibernate.dialect.PostgreSQLDialect
+#    hibernate:
+#      ddl-auto: update
+#    show-sql: true
+#    properties:
+#      hibernate:
+#        format_sql: true
+#        default_schema: public
+#    database: postgresql
+#
+#server:
+#  port: 8098
+#
+#auth:
+#  service:
+#    base-url: http://localhost:8081
+#
+#feign:
+#  client:
+#    config:
+#      default:  # ← используйте 'default' для глобальной конфигурации всех Feign-клиентов
+#        connectTimeout: 5000
+#        readTimeout: 10000
+#        loggerLevel: BASIC
+#
+#logging:
+#  level:
+#    org.springframework.web: DEBUG
+#    com.yourpackage.client: DEBUG  # включите лог Feign, если нужно
+
+---
+# Профиль: docker (для запуска в Docker-сети)
+spring:
+  config:
+    activate:
+      on-profile: docker
   datasource:
-    #url: jdbc:postgresql://localhost:5434/postgres-person
-    url: jdbc:postgresql://localhost:5432/person-service-app
+    url: jdbc:postgresql://postgres-person:5432/postgres-person
     username: user
     password: 123
     driver-class-name: org.postgresql.Driver
-
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: update  # ← в продакшене лучше 'validate' или 'none'
     show-sql: false
     properties:
       hibernate:
@@ -20,24 +69,21 @@ spring:
         default_schema: public
     database: postgresql
 
-#  jackson:
-#    serialization:
-#      fail-on-empty-beans: false
-
-
 server:
   port: 8098
 
-logging:
-  level:
-    org.springframework.web: DEBUG
+auth:
+  service:
+    base-url: http://individuals-api:8081
 
-
-feignClientUrl: http://localhost:8081/api/v1/auth/registration
 feign:
   client:
     config:
-      jsonPlaceholderClient:
+      default:
         connectTimeout: 5000
         readTimeout: 10000
-        loggerLevel: basic
+        loggerLevel: BASIC
+
+logging:
+  level:
+    org.springframework.web: INFO
