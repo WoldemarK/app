@@ -11,11 +11,13 @@ spring:
             scope: openid
         provider:
           keycloak:
-            issuer-uri: http://localhost:8080/realms/realm-api-individuals
+            issuer-uri:  http://keycloak:8080/realms/realm-api-individuals
+           # issuer-uri: http://localhost:8080/realms/realm-api-individuals
             user-name-attribute: preferred_username
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8080/realms/realm-api-individuals
+        #  issuer-uri: http://localhost:8080/realms/realm-api-individuals
+          issuer-uri: http://keycloak:8080/realms/realm-api-individuals
 
 
 server:
@@ -23,12 +25,14 @@ server:
 
 keycloak:
   admin:
-    server-url: http://localhost:8080
+    server-url: http://keycloak:8080
+   # server-url: http://localhost:8080
     client-id: admin-cli
     admin-username: admin
     admin-password: admin
 
-TOKEN-URL: http://localhost:8080/realms/realm-api-individuals/protocol/openid-connect/token
+TOKEN-URL: http://keycloak:8080/realms/realm-api-individuals/protocol/openid-connect/token
+#TOKEN-URL: http://localhost:8080/realms/realm-api-individuals/protocol/openid-connect/token
 keycloak-default-role: user
 keycloak-realm-name: realm-api-individuals
 keycloak-realm-admin: master

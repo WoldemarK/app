@@ -41,7 +41,7 @@ public class UserService {
                 .password(created.getSecretKey())
                 .build();
         clientApi.create(userDto);
-
+        log.info(user.toString());
         return created;
     }
 

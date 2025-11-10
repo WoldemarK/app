@@ -17,6 +17,7 @@ services:
     depends_on:
       keycloak-postgres:
         condition: service_healthy
+    # healthcheck: УДАЛЁН
     networks:
       - individuals-api-network
 
@@ -50,7 +51,43 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - person_postgres_data:/var/lib/postgresql/data  # ← исправлено!
+      - person_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d postgres-person"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - individuals-api-network
+
+  person-service:
+    image: person-service:latest
+    container_name: person-service
+    ports:
+      - "8098:8098"
+    build:
+      context: ./person-service
+    pull_policy: build
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      postgres-person:
+        condition: service_healthy
+    networks:
+      - individuals-api-network
+
+  individuals-api:
+    image: individuals-api:latest
+    container_name: individuals-api-service
+    ports:
+      - "8081:8081"
+    build:
+      context: ./individuals-api
+    pull_policy: build
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+     - keycloak
     networks:
       - individuals-api-network
 
