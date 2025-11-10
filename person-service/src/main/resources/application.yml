@@ -2,15 +2,6 @@ spring:
   application:
     name: person-service
 
-# Общие настройки (если нужны для всех профилей) можно оставить здесь,
-# но лучше вынести всё в профили, если значения различаются.
-
----
-# Профиль: local (для разработки на localhost)
-#spring:
-#  config:
-#    activate:
-#      on-profile: local
 #  datasource:
 #    url: jdbc:postgresql://localhost:5434/postgres-person
 #    username: user
@@ -25,11 +16,9 @@ spring:
 #      hibernate:
 #        format_sql: true
 #        default_schema: public
-#    database: postgresql
-#
+#        database: postgresql
 #server:
-#  port: 8098
-#
+#  port: 8082
 #auth:
 #  service:
 #    base-url: http://localhost:8081
@@ -37,7 +26,7 @@ spring:
 #feign:
 #  client:
 #    config:
-#      default:  # ← используйте 'default' для глобальной конфигурации всех Feign-клиентов
+#      default:
 #        connectTimeout: 5000
 #        readTimeout: 10000
 #        loggerLevel: BASIC
@@ -45,10 +34,8 @@ spring:
 #logging:
 #  level:
 #    org.springframework.web: DEBUG
-#    com.yourpackage.client: DEBUG  # включите лог Feign, если нужно
-
 ---
-# Профиль: docker (для запуска в Docker-сети)
+# Профиль: docker
 spring:
   config:
     activate:
@@ -61,7 +48,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update  # ← в продакшене лучше 'validate' или 'none'
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:
@@ -70,7 +57,7 @@ spring:
     database: postgresql
 
 server:
-  port: 8098
+  port: 8082
 
 auth:
   service:
@@ -87,3 +74,12 @@ feign:
 logging:
   level:
     org.springframework.web: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    prometheus:
+      enabled: true

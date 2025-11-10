@@ -15,7 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private static final String[] permitAllPaths = {"/api/v1/auth/registration", "/api/v1/auth/login",
-            "/api/test/log"};
+            "/api/test/log", "/actuator/**"};
     private static final String[] authenticatedPaths = {"/v1/auth/me", "/v1/auth/refresh-token"};
 
     @Bean

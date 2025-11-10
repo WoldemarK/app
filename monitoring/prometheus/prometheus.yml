@@ -7,8 +7,13 @@ scrape_configs:
     static_configs:
       - targets: [ 'localhost:9090' ]
 
-  - job_name: 'api-individuals'
+  - job_name: 'individuals-api'
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: [ 'api-individuals:8081' ]
+      - targets: [ 'individuals-api:8081' ]
+
+  - job_name: 'person-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [ 'person-service:8082' ]
 
