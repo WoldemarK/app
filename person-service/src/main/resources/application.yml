@@ -3,7 +3,8 @@ spring:
     name: person-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5434/postgres-person
+    #    url: jdbc:postgresql://localhost:5434/postgres-person
+    url: jdbc:postgresql://postgres-person:5432/postgres-person
     username: user
     password: 123
     driver-class-name: org.postgresql.Driver

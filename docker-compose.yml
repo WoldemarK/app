@@ -13,7 +13,7 @@ services:
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: keycloak
     volumes:
-      - ./keycloak/realm-config.json:/opt/keycloak/data/import/realm-config.json
+        - ./keycloak/realm-config.json:/opt/keycloak/data/import/realm-config.json
     depends_on:
       keycloak-postgres:
         condition: service_healthy
@@ -34,7 +34,7 @@ services:
     networks:
       - individuals-api-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U keycloak -d keycloak" ]
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -50,9 +50,31 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - person_postgres_data:/var/lib/postgresql/data  # ← исправлено!
+      - person_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d persondb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - individuals-api-network
+
+  person-service:
+    image: person-service:latest
+    container_name: person-service
+    ports:
+      - "8098:8098"
+    build:
+      context: ./person-service
+    pull_policy: build
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      postgres-person:
+        condition: service_healthy
+    networks:
+      - individuals-api-network
+
 
 networks:
   individuals-api-network:
