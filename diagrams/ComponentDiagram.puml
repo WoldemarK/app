@@ -1,0 +1,15 @@
+@startuml
+title Диаграмма компонентов — PersonService
+
+package "PersonService" {
+    component "UserController" as API
+    component "PersonController" as PS
+    component "PersonRepository" as Repo
+    component "PersonDB" as DB
+}
+
+API --> PS : "Обрабатывает запросы"
+PS --> Repo : "Сохраняет/удаляет данные"
+Repo --> DB : "Операции с БД"
+
+@enduml

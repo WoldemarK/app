@@ -1,0 +1,19 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Диаграмма контейнеров — Система регистрации пользователей
+
+Person(user, "Пользователь", "Человек, регистрирующийся в системе")
+System_Boundary(system, "Система регистрации") {
+    Container(api, "Individual-API", "Java, Spring Boot", "Шлюз API, обрабатывает запросы")
+    Container(person_service, "PersonService", "Java, Spring Boot", "Сервис управления данными пользователей")
+    ContainerDb(person_db, "PersonDB", "PostgreSQL", "Хранение данных пользователей")
+    Container(keycloak, "Keycloak", "Identity Server", "Управление аутентификацией и токенами")
+}
+
+Rel(user, api, "Отправляет регистрационные данные", "HTTPS")
+Rel(api, person_service, "Передает данные пользователя", "REST/HTTPS")
+Rel(person_service, person_db, "Сохраняет/удаляет данные", "JDBC/PostgreSQL")
+Rel(api, keycloak, "Запрашивает токены", "REST/HTTPS")
+
+@enduml
