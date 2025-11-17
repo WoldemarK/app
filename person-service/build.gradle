@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.example'
-version = '0.0.1-SNAPSHOT'
+version = '1.0.0'
 description = 'person-service'
 
 java {
@@ -14,8 +14,44 @@ java {
     }
 }
 
+def loadEnvFile() {
+    def envFile = file('.env')
+    if (envFile.exists()) {
+        envFile.eachLine { line ->
+            if (line.contains('=')) {
+                def (key, value) = line.split('=', 2)
+                def trimmedKey = key.trim()
+                def trimmedValue = value.trim()
+                System.setProperty(trimmedKey, trimmedValue)
+                println "$trimmedKey=$trimmedValue"
+            }
+        }
+    }
+}
+
+loadEnvFile()
+
+def nexusUrl = System.getenv("NEXUS_URL") ?: System.getProperty("NEXUS_URL")
+def nexusUser = System.getenv("NEXUS_USERNAME") ?: System.getProperty("NEXUS_USERNAME")
+def nexusPassword = System.getenv("NEXUS_PASSWORD") ?: System.getProperty("NEXUS_PASSWORD")
+
+if (!nexusUrl || !nexusUser || !nexusPassword) {
+    throw new GradleException(
+            "NEXUS_URL, NEXUS_USERNAME, or NEXUS_PASSWORD not set. " +
+                    "Please create a .env file with these properties or set environment variables."
+    )
+}
+
 repositories {
     mavenCentral()
+    maven {
+        url = uri(nexusUrl)
+        allowInsecureProtocol = true
+        credentials {
+            username = nexusUser
+            password = nexusPassword
+        }
+    }
 }
 dependencyManagement {
     imports {
@@ -51,6 +87,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 }
 
-tasks.named('test') {
+test {
     useJUnitPlatform()
+    include '**/*'
+    jvmArgs '-Xmx2g', '-XX:+UseG1GC'
 }
