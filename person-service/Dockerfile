@@ -1,9 +1,26 @@
-FROM gradle:8.14.0-jdk21 AS builder
-WORKDIR /app
-COPY --chown=gradle:gradle . .
-RUN gradle clean build -x test --no-daemon
+FROM gradle:8.14.2-jdk21 AS build
+ARG NEXUS_URL=http://host.docker.internal:8083/repository/maven-snapshots/
+ARG NEXUS_USERNAME=admin
+ARG NEXUS_PASSWORD=admin
 
-FROM eclipse-temurin:21-jdk-alpine
+ENV NEXUS_URL=${NEXUS_URL}
+ENV NEXUS_USERNAME=${NEXUS_USERNAME}
+ENV NEXUS_PASSWORD=${NEXUS_PASSWORD}
+
+WORKDIR /home/gradle/project
+
+COPY build.gradle .
+COPY settings.gradle .
+COPY src ./src
+
+RUN gradle --no-daemon clean bootJar
+
+FROM eclipse-temurin:21-jre
+
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-COPY --from=builder /app/build/libs/*.jar app.jar
-ENTRYPOINT ["java", "-jar", "app.jar"]
+COPY --from=build /home/gradle/project/build/libs/*.jar app.jar
+
+EXPOSE 8091
+CMD ["java", "-jar", "app.jar"]

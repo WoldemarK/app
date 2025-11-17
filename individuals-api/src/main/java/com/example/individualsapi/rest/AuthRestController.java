@@ -38,9 +38,10 @@ public class AuthRestController {
         return ResponseEntity.status(HttpStatus.CREATED).body(tokenResponse);
     }
 
+
     @GetMapping("/me")
-    public ResponseEntity<AllUserInfirmationSystem> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(userInfoService.getMe(jwt));
+    public ResponseEntity<AllUserInfirmationSystem> getCurrentUser() {
+        return ResponseEntity.ok(userInfoService.getUserInformation());
     }
 
 }
