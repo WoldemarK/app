@@ -56,7 +56,7 @@ configurations.all {
 }
 
 dependencies {
-    implementation("com.example:person-service:${versions["person-service"]}")
+ //   implementation("com.example:person-service:${versions["person-service"]}")
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("io.micrometer:micrometer-registry-prometheus")
@@ -176,27 +176,27 @@ idea {
     }
 }
 
-/*
-──────────────────────────────────────────────────────
-============== Resolve NEXUS credentials =============
-──────────────────────────────────────────────────────
-*/
-
-file(".env").takeIf { it.exists() }?.readLines()?.forEach {
-    val (k, v) = it.split("=", limit = 2)
-    System.setProperty(k.trim(), v.trim())
-    logger.lifecycle("${k.trim()}=${v.trim()}")
-}
-
-val nexusUrl = System.getenv("NEXUS_URL") ?: System.getProperty("NEXUS_URL")
-val nexusUser = System.getenv("NEXUS_USERNAME") ?: System.getProperty("NEXUS_USERNAME")
-val nexusPassword = System.getenv("NEXUS_PASSWORD") ?: System.getProperty("NEXUS_PASSWORD")
-
-if (nexusUrl.isNullOrBlank() || nexusUser.isNullOrBlank() || nexusPassword.isNullOrBlank()) {
-    throw GradleException(
-        "NEXUS_URL or NEXUS_USER or NEXUS_PASSWORD not set. " +
-                "Please create a .env file with these properties or set environment variables."
-    )
-}
+///*
+//──────────────────────────────────────────────────────
+//============== Resolve NEXUS credentials =============
+//──────────────────────────────────────────────────────
+//*/
+//
+//file(".env").takeIf { it.exists() }?.readLines()?.forEach {
+//    val (k, v) = it.split("=", limit = 2)
+//    System.setProperty(k.trim(), v.trim())
+//    logger.lifecycle("${k.trim()}=${v.trim()}")
+//}
+//
+//val nexusUrl = System.getenv("NEXUS_URL") ?: System.getProperty("NEXUS_URL")
+//val nexusUser = System.getenv("NEXUS_USERNAME") ?: System.getProperty("NEXUS_USERNAME")
+//val nexusPassword = System.getenv("NEXUS_PASSWORD") ?: System.getProperty("NEXUS_PASSWORD")
+//
+//if (nexusUrl.isNullOrBlank() || nexusUser.isNullOrBlank() || nexusPassword.isNullOrBlank()) {
+//    throw GradleException(
+//        "NEXUS_URL or NEXUS_USER or NEXUS_PASSWORD not set. " +
+//                "Please create a .env file with these properties or set environment variables."
+//    )
+//}
 
 

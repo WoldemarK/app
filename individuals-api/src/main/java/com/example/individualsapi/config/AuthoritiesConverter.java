@@ -4,14 +4,15 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
-public class AuthoritiesConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+public class AuthoritiesConverter implements Converter<Jwt, Flux<GrantedAuthority>> {
     @Override
-    public Collection<GrantedAuthority> convert(Jwt jwt) {
+    public Flux<GrantedAuthority> convert(Jwt jwt) {
         Collection<GrantedAuthority> authorities = new ArrayList<>();
         Object realmAccess = jwt.getClaims().get("realm_access");
         Object roles = ((Map<?, ?>) realmAccess).get("roles");
@@ -21,6 +22,6 @@ public class AuthoritiesConverter implements Converter<Jwt, Collection<GrantedAu
                     .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                     .forEach(authorities::add);
         }
-        return authorities;
+        return Flux.fromIterable(authorities);
     }
 }

@@ -81,21 +81,21 @@ services:
       timeout: 5s
       retries: 30
 
-  nexus:
-    image: sonatype/nexus3:3.76.0
-    container_name: nexus
-    ports:
-      - "8081:8081"
-    environment:
-      NEXUS_SECURITY_INITIAL_PASSWORD: admin
-      NEXUS_SECURITY_RANDOMPASSWORD: false
-    volumes:
-      - nexus-data:/nexus-data
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8081/service/rest/v1/status" ]
-      interval: 5s
-      timeout: 10s
-      retries: 30
+#  nexus:
+#    image: sonatype/nexus3:3.76.0
+#    container_name: nexus
+#    ports:
+#      - "8081:8081"
+#    environment:
+#      NEXUS_SECURITY_INITIAL_PASSWORD: admin
+#      NEXUS_SECURITY_RANDOMPASSWORD: false
+#    volumes:
+#      - nexus-data:/nexus-data
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:8081/service/rest/v1/status" ]
+#      interval: 5s
+#      timeout: 10s
+#      retries: 30
 
   prometheus:
     image: prom/prometheus:latest
