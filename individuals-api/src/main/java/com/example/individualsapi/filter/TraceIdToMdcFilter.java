@@ -2,32 +2,41 @@ package com.example.individualsapi.filter;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
+import reactor.core.publisher.Mono;
 
 @Component
-public class TraceIdToMdcFilter extends OncePerRequestFilter {
+public class TraceIdToMdcFilter implements WebFilter {
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         SpanContext ctx = Span.current().getSpanContext();
+        boolean added;
+
         if (ctx.isValid()) {
             MDC.put("trace_id", ctx.getTraceId());
             MDC.put("span_id", ctx.getSpanId());
+            added = true;
+        } else {
+            added = false;
         }
-        try {
-            filterChain.doFilter(request, response);
-        } finally {
-            MDC.remove("trace_id");
-            MDC.remove("span_id");
-        }
+
+        return chain.filter(exchange)
+                .doOnTerminate(() -> {
+                    if (added) {
+                        MDC.remove("trace_id");
+                        MDC.remove("span_id");
+                    }
+                })
+                .doOnCancel(() -> {
+                    if (added) {
+                        MDC.remove("trace_id");
+                        MDC.remove("span_id");
+                    }
+                });
     }
 }

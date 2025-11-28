@@ -1,39 +1,37 @@
 package com.example.personservice.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.ColumnDefault;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import javax.validation.constraints.NotNull;
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter
 @Setter
-@ToString
 @MappedSuperclass
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class BaseEntity implements Serializable {
+public class BaseEntity {
 
     @Id
-    @GeneratedValue
-    @Column(name = "id", updatable = false, nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", nullable = false)
     private UUID id;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+    @NotNull
+    @ColumnDefault("true")
+    @Column(name = "active", nullable = false)
+    private Boolean active;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    @NotNull
+    @ColumnDefault("(now) AT TIME ZONE 'utc'::text")
+    @Column(name = "created", nullable = false)
+    private Instant created;
+
+    @NotNull
+    @ColumnDefault("(now) AT TIME ZONE 'utc'::text")
+    @Column(name = "updated", nullable = false)
+    private Instant updated;
+
 }

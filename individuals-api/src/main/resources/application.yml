@@ -1,54 +1,76 @@
+server:
+  port: 8091
+
+application:
+  keycloak:
+    serverUrl: ${KEYCLOAK_URL:http://localhost:8080}
+    realmUrl: ${application.keycloak.serverUrl}/realms/${application.keycloak.realm}
+    tokenUrl: ${application.keycloak.realmUrl}/protocol/openid-connect/token
+    realm: individual
+    clientId: individual
+    clientSecret: FaxzBgk7pkyattBrV8MlVCVg80jjZKo5
+    adminUsername: admin
+    adminPassword: admin
+    adminClientId: admin-cli
+
 spring:
   application:
-    name: api-individuals
+    name: individual-api
   security:
     oauth2:
       client:
         registration:
           keycloak:
-            client-id: client-api-individuals
+            provider: keycloak
+            client-id: ${application.keycloak.clientId}
+            client-secret: ${application.keycloak.clientSecret}
+            client-name: individual
             authorization-grant-type: authorization_code
-            scope: openid
-        provider:
-          keycloak:
-            issuer-uri:  http://keycloak:8080/realms/realm-api-individuals
-           # issuer-uri: http://localhost:8080/realms/realm-api-individuals
-            user-name-attribute: preferred_username
+            scope: openid, profile, email
       resourceserver:
         jwt:
-        #  issuer-uri: http://localhost:8080/realms/realm-api-individuals
-          issuer-uri: http://keycloak:8080/realms/realm-api-individuals
+          issuer-uri: ${application.keycloak.serverUrl}/realms/${application.keycloak.realm}
 
+auth:
+  name: ${AUTH_API_NAME:auth}
+  url: ${AUTH_API_URL:http://localhost:8080}
 
-server:
-  port: 8081
+users:
+  name: ${AUTH_API_NAME:kcUsers}
+  url: ${AUTH_API_NAME:http://localhost:8080}
 
-keycloak:
-  admin:
-    server-url: http://keycloak:8080
-   # server-url: http://localhost:8080
-    client-id: admin-cli
-    admin-username: admin
-    admin-password: admin
-
-TOKEN-URL: http://keycloak:8080/realms/realm-api-individuals/protocol/openid-connect/token
-#TOKEN-URL: http://localhost:8080/realms/realm-api-individuals/protocol/openid-connect/token
-keycloak-default-role: user
-keycloak-realm-name: realm-api-individuals
-keycloak-realm-admin: master
+person:
+  name: ${PERSONS_API_NAME:person}
+  url: ${PERSONS_API_URL:http://localhost:8092}
 
 logging:
-  level:
-    org.springframework.web: DEBUG
+  config: "classpath:logback.xml"
+
 management:
   endpoints:
     web:
       exposure:
-        include: "*"
-  metrics:
-    export:
-      prometheus:
-        enabled: true
+        include: health,info,prometheus
   endpoint:
     prometheus:
-      enabled: true
+      access: read_only
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+
+otel:
+  exporter:
+    otlp:
+      endpoint:
+        ${OTLP_EXPORTER_ENDPOINT:http://localhost:4318}
+      protocol: http/protobuf
+  logs:
+    exporter: none
+  metrics:
+    exporter: none
+

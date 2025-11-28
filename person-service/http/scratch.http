@@ -1,25 +1,11 @@
 ###
-POST http://localhost:8098/api/users/full
+POST http://localhost:8092/api/v1/individual/reg
 Content-Type: application/json
 
 {
-  "email": "john.doe@example.com",
-  "first_name": "John",
-  "last_name": "Doe",
-  "secret_key": "my-secret-key-123",
-  "filled": true,
-  "address_id": {
-    "address": "123 Main St",
-    "city": "New York",
-    "state": "NY",
-    "zip_code": "10001",
-    "country_id": {
-      "name": "United States",
-      "status": "ACTIVE",
-      "alpha2": "US",
-      "alpha3": "USA"
-    }
-  }
+  "passportNumber": "AB123456",
+  "phoneNumber": "+79001234567",
+  "status": "OK"
 }
 
 ###

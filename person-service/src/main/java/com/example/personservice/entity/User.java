@@ -1,34 +1,32 @@
 package com.example.personservice.entity;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.RelationTargetAuditMode;
 
-@EqualsAndHashCode(callSuper = true)
-@Data
+import javax.validation.constraints.Size;
+
+@Setter
+@Getter
 @Entity
-@Audited
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@Table(name = "person.users")
+@Table(name = "users", schema = "person")
+@Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)
 public class User extends BaseEntity {
-
+    @Size(max = 1024)
+    @Column(name = "email", nullable = false, unique = true, length = 1024)
     private String email;
-    private boolean filled;
-    private String lastName;
+
+    @Size(max = 64)
+    @Column(name = "first_name", nullable = false, unique = true, length = 64)
     private String firstName;
-    private String secretKey;
 
+    @Size(max = 64)
+    @Column(name = "last_name", nullable = false, unique = true, length = 64)
+    private String lastName;
 
-    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    private Address addressId;
+    @OneToOne(optional = false, cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE})
+    @JoinColumn(name = "address_id", nullable = false)
+    private Address address;
 }

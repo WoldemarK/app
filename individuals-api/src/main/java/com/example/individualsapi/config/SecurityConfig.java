@@ -1,5 +1,6 @@
 package com.example.individualsapi.config;
 
+
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

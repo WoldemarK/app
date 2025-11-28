@@ -1,5 +1,5 @@
-FROM gradle:8.14.2-jdk21 AS build
-ARG NEXUS_URL=http://host.docker.internal:8083/repository/maven-snapshots/
+FROM gradle:8.14.2-jdk24 AS build
+ARG NEXUS_URL=http://host.docker.internal:8081/repository/maven-snapshots/
 ARG NEXUS_USERNAME=admin
 ARG NEXUS_PASSWORD=admin
 
@@ -9,14 +9,14 @@ ENV NEXUS_PASSWORD=${NEXUS_PASSWORD}
 
 WORKDIR /home/gradle/project
 
-COPY build.gradle .
-COPY settings.gradle .
+COPY build.gradle.kts .
+COPY settings.gradle.kts .
 COPY src ./src
 COPY openapi ./openapi
 
 RUN gradle --no-daemon clean bootJar
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:24-jre
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
