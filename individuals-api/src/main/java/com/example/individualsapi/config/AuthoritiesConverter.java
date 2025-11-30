@@ -15,12 +15,15 @@ public class AuthoritiesConverter implements Converter<Jwt, Flux<GrantedAuthorit
     public Flux<GrantedAuthority> convert(Jwt jwt) {
         Collection<GrantedAuthority> authorities = new ArrayList<>();
         Object realmAccess = jwt.getClaims().get("realm_access");
-        Object roles = ((Map<?, ?>) realmAccess).get("roles");
-        if (roles instanceof Collection<?>) {
-            ((Collection<?>) roles).stream()
-                    .filter(role -> role instanceof String)
-                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                    .forEach(authorities::add);
+
+        if (realmAccess instanceof Map) {
+            Object roles = ((Map<?, ?>) realmAccess).get("roles");
+            if (roles instanceof Collection<?>) {
+                ((Collection<?>) roles).stream()
+                        .filter(role -> role instanceof String)
+                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                        .forEach(authorities::add);
+            }
         }
         return Flux.fromIterable(authorities);
     }

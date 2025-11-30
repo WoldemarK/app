@@ -1,7 +1,7 @@
 package com.example.individualsapi.service;
 
-import com.example.individuals_api.api.dto.TokenResponse;
-import com.example.individuals_api.api.dto.UserLoginRequest;
+import com.example.individuals.dto.TokenResponse;
+import com.example.individuals.dto.UserLoginRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
