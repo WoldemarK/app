@@ -49,7 +49,7 @@ public class KeycloakClient {
 
     @WithSpan("keycloakClient.login")
     public Mono<TokenResponse> login(UserLoginRequest req) {
-        var form = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "password");
         form.add("client_id", props.clientId());
         form.add("username", req.getEmail());
@@ -60,7 +60,7 @@ public class KeycloakClient {
 
     @WithSpan("keycloakClient.adminLogin")
     public Mono<TokenResponse> adminLogin() {
-        var form = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "password");
         form.add("client_id", props.adminClientId());
         form.add("username", props.adminUsername());
@@ -70,7 +70,7 @@ public class KeycloakClient {
 
     @WithSpan("keycloakClient.refreshToken")
     public Mono<TokenResponse> refreshToken(TokenRefreshRequest req) {
-        var form = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "refresh_token");
         form.add("client_id", props.clientId());
         form.add("refresh_token", req.getRefreshToken());
@@ -147,7 +147,7 @@ public class KeycloakClient {
                 });
     }
 
-    private static void addIfNotBlank(LinkedMultiValueMap<String, String> form, String key, String value) {
+    private static void addIfNotBlank(MultiValueMap<String, String> form, String key, String value) {
         if (value != null && !value.isBlank()) {
             form.add(key, value);
         }

@@ -3,7 +3,12 @@ package com.example.individualsapi.service;
 import com.example.individuals.dto.IndividualWriteDto;
 import com.example.individuals.dto.TokenResponse;
 import com.example.individuals.dto.UserInfoResponse;
+import com.example.individuals.dto.UserLoginRequest;
+import com.example.individualsapi.client.KeycloakClient;
+import com.example.individualsapi.dto.KeycloakCredentialsRepresentation;
+import com.example.individualsapi.dto.KeycloakUserRepresentation;
 import com.example.individualsapi.exception.BadRequestException;
+import com.example.individualsapi.mapper.TokenResponseMapper;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +24,10 @@ import java.time.ZoneOffset;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    private final KeycloakClient keycloakClient;
+    private final PersonService personService;
+    private final TokenResponseMapper tokenResponseMapper;
 
     @WithSpan(value = "userService.getCurrentUserInfo")
     public Mono<UserInfoResponse> getUserInfo() {
@@ -41,8 +50,36 @@ public class UserService {
         return Mono.just(response);
 
     }
+    @WithSpan("userService.register")
+    public Mono<TokenResponse> register(IndividualWriteDto request) {
+        return personService.register(request)
+                .flatMap(person -> {
+                    String personId = person.getId().toString();
 
-    public Mono<TokenResponse> register(IndividualWriteDto dto){
+                    return keycloakClient.adminLogin()
+                            .flatMap(adminToken -> {
+                                KeycloakUserRepresentation kcUser = new KeycloakUserRepresentation(
+                                        null, request.getEmail(), request.getEmail(),
+                                        true, true, null
+                                );
 
+                                return keycloakClient.registerUser(adminToken.getAccessToken(), kcUser)
+                                        .flatMap(kcUserId -> {
+                                            var cred = new KeycloakCredentialsRepresentation(
+                                                    "password", request.getPassword(), false
+                                            );
+                                            return keycloakClient
+                                                    .resetUserPassword(kcUserId, cred, adminToken.getAccessToken())
+                                                    .then(keycloakClient.login(
+                                                            new UserLoginRequest(request.getEmail(), request.getPassword())
+                                                    ));
+                                        })
+                                        .map(tokenResponseMapper::toTokenResponse)
+                                        .onErrorResume(err ->
+                                                personService.compensateRegistration(personId)
+                                                        .then(Mono.error(err))
+                                        );
+                            });
+                });
     }
 }

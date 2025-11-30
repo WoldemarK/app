@@ -1,47 +1,51 @@
 package com.example.individualsapi.service;
 
+import com.example.individuals.dto.TokenRefreshRequest;
 import com.example.individuals.dto.TokenResponse;
 import com.example.individuals.dto.UserLoginRequest;
+import com.example.individualsapi.client.KeycloakClient;
+import com.example.individualsapi.mapper.KeycloakMapper;
+import com.example.individualsapi.mapper.TokenResponseMapper;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TokenService {
 
-    private final RestTemplate restTemplate;
+    private final KeycloakClient keycloakClient;
+    private final KeycloakMapper keycloakMapper;
+    private final TokenResponseMapper tokenResponseMapper;
 
-    @Value("${TOKEN-URL}")
-    private String tokenUrl;
+    @WithSpan("tokenService.login")
+    public Mono<TokenResponse> login(UserLoginRequest loginRequest) {
+        UserLoginRequest keycloakRequest = keycloakMapper.toKeycloakUserLoginRequest(loginRequest);
+        return keycloakClient.login(keycloakRequest)
+                .doOnNext(t ->
+                        log.info("Token successfully generated for email = [{}]", keycloakRequest.getEmail()))
+                .doOnError(e ->
+                        log.error("Failed to generate token for email = [{}]", keycloakRequest.getEmail(), e))
+                .map(tokenResponseMapper::toTokenResponse);
+    }
 
-    @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
-    private String clientId;
+    @WithSpan("tokenService.refreshToken")
+    public Mono<TokenResponse> refreshToken(TokenRefreshRequest refresh) {
+        TokenRefreshRequest keycloakRefreshRequest = keycloakMapper.toKeycloakTokenRefreshRequest(refresh);
+        return keycloakClient.refreshToken(keycloakRefreshRequest)
+                .doOnNext(r -> log.info("Token refreshed successfully"))
+                .map(tokenResponseMapper::toTokenResponse);
+    }
 
-    public ResponseEntity<TokenResponse> getToken(UserLoginRequest request) {
-        log.info("Registering user: {}", request);
-
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("client_id", clientId);
-        formData.add("username", request.getEmail());
-        formData.add("password", request.getPassword());
-        formData.add("grant_type", "password");
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
-
-        return restTemplate.postForEntity(tokenUrl, requestEntity, TokenResponse.class);
-
+    @WithSpan("tokenService.obtainAdminToken")
+    public Mono<TokenResponse> obtainAdminToken() {
+        return keycloakClient.adminLogin()
+                .doOnNext(t -> log.info("Admin token obtained for realm = [{}]", "master"))
+                .doOnError(e -> log.error("Failed to obtain admin token", e))
+                .map(tokenResponseMapper::toTokenResponse);
     }
 }
