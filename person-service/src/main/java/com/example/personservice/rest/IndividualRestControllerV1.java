@@ -24,7 +24,4 @@ public class IndividualRestControllerV1 {
         return ResponseEntity.ok(individualsService.register(writeDto));
     }
 
-
-
-
 }
