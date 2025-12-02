@@ -35,7 +35,6 @@ public class KeycloakClient {
     private final WebClient webClient;
     private final KeycloakProperties props;
 
-    private final String userByIdUrl;
     private final String userRegistrationUrl;
     private final String userPasswordResetUrl;
 
@@ -43,7 +42,7 @@ public class KeycloakClient {
         this.props = props;
         this.webClient = webClient;
         this.userRegistrationUrl = "%s/admin/realms/%s/users".formatted(props.serverUrl(), props.realm());
-        this.userByIdUrl = userRegistrationUrl + "/{id}";
+        String userByIdUrl = userRegistrationUrl + "/{id}";
         this.userPasswordResetUrl = userByIdUrl + "/reset-password";
     }
 
@@ -54,7 +53,6 @@ public class KeycloakClient {
         form.add("client_id", props.clientId());
         form.add("username", req.getEmail());
         form.add("password", req.getPassword());
-        addIfNotBlank(form, "client_secret", props.clientSecret());
         return requestToken(form);
     }
 
@@ -74,7 +72,6 @@ public class KeycloakClient {
         form.add("grant_type", "refresh_token");
         form.add("client_id", props.clientId());
         form.add("refresh_token", req.getRefreshToken());
-        addIfNotBlank(form, "client_secret", props.clientSecret());
         return requestToken(form);
     }
 
@@ -146,11 +143,4 @@ public class KeycloakClient {
                     }
                 });
     }
-
-    private static void addIfNotBlank(MultiValueMap<String, String> form, String key, String value) {
-        if (value != null && !value.isBlank()) {
-            form.add(key, value);
-        }
-    }
-
 }

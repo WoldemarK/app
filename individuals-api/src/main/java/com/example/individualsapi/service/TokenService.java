@@ -37,15 +37,7 @@ public class TokenService {
     public Mono<TokenResponse> refreshToken(TokenRefreshRequest refresh) {
         TokenRefreshRequest keycloakRefreshRequest = keycloakMapper.toKeycloakTokenRefreshRequest(refresh);
         return keycloakClient.refreshToken(keycloakRefreshRequest)
-                .doOnNext(r -> log.info("Token refreshed successfully"))
-                .map(tokenResponseMapper::toTokenResponse);
-    }
-
-    @WithSpan("tokenService.obtainAdminToken")
-    public Mono<TokenResponse> obtainAdminToken() {
-        return keycloakClient.adminLogin()
-                .doOnNext(t -> log.info("Admin token obtained for realm = [{}]", "master"))
-                .doOnError(e -> log.error("Failed to obtain admin token", e))
+                .doOnNext(response-> log.info("Token refreshed successfully%s".formatted(response)))
                 .map(tokenResponseMapper::toTokenResponse);
     }
 }

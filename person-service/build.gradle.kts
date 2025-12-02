@@ -28,7 +28,7 @@ plugins {
 }
 
 group = "com.example"
-version = "1.0.0-SNAPSHOT"
+version = "1.0.0"
 
 java {
     toolchain {
@@ -285,7 +285,7 @@ publishing {
                     artifact(jarFile)
                     groupId = "com.example"
                     artifactId = jarBaseName
-                    version = "1.0.0-SNAPSHOT"
+                    version = "1.0.0"
 
                     pom {
                         this.name.set("Generated API $jarBaseName")
@@ -298,9 +298,7 @@ publishing {
 
     repositories {
         mavenCentral()
-        mavenLocal() // ← обязательно, если используешь publishToMavenLocal
-
-        // Nexus (если нужен)
+        mavenLocal()
         if (!nexusUrl.isNullOrBlank()) {
             maven {
                 url = uri(nexusUrl)

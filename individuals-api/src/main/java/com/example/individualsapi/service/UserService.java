@@ -50,36 +50,42 @@ public class UserService {
         return Mono.just(response);
 
     }
+
     @WithSpan("userService.register")
     public Mono<TokenResponse> register(IndividualWriteDto request) {
         return personService.register(request)
-                .flatMap(person -> {
-                    String personId = person.getId().toString();
-
-                    return keycloakClient.adminLogin()
-                            .flatMap(adminToken -> {
-                                KeycloakUserRepresentation kcUser = new KeycloakUserRepresentation(
-                                        null, request.getEmail(), request.getEmail(),
-                                        true, true, null
-                                );
-
-                                return keycloakClient.registerUser(adminToken.getAccessToken(), kcUser)
-                                        .flatMap(kcUserId -> {
-                                            var cred = new KeycloakCredentialsRepresentation(
-                                                    "password", request.getPassword(), false
-                                            );
-                                            return keycloakClient
-                                                    .resetUserPassword(kcUserId, cred, adminToken.getAccessToken())
-                                                    .then(keycloakClient.login(
-                                                            new UserLoginRequest(request.getEmail(), request.getPassword())
-                                                    ));
-                                        })
-                                        .map(tokenResponseMapper::toTokenResponse)
-                                        .onErrorResume(err ->
-                                                personService.compensateRegistration(personId)
-                                                        .then(Mono.error(err))
-                                        );
-                            });
-                });
+                .flatMap(personId ->
+                        keycloakClient.adminLogin()
+                                .flatMap(adminToken ->
+                                        keycloakClient.registerUser(adminToken, new KeycloakUserRepresentation(
+                                                        null,
+                                                        request.getLastName(),
+                                                        request.getEmail(),
+                                                        true,
+                                                        true,
+                                                        null
+                                                ))
+                                                .flatMap(kcUserId -> {
+                                                    KeycloakCredentialsRepresentation cred = new KeycloakCredentialsRepresentation(
+                                                            "password", request.getPassword(), false
+                                                    );
+                                                    return keycloakClient.resetUserPassword(
+                                                                    kcUserId, cred, adminToken.getAccessToken()
+                                                            )
+                                                            .thenReturn(kcUserId);
+                                                })
+                                                .flatMap(_ ->
+                                                        keycloakClient.login(new UserLoginRequest(
+                                                                request.getEmail(),
+                                                                request.getPassword()
+                                                        ))
+                                                )
+                                                .onErrorResume(err ->
+                                                        personService.compensateRegistration(personId.getId().toString())
+                                                                .then(Mono.error(err))
+                                                )
+                                )
+                )
+                .map(tokenResponseMapper::toTokenResponse);
     }
 }

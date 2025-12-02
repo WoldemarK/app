@@ -3,7 +3,7 @@ import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 
 val versions = mapOf(
-    "person-service" to "1.0.0-SNAPSHOT",
+    "person-service" to "1.0.0",
     "keycloakAdminClientVersion" to "22.0.3",
     "springdocOpenapiStarterWebfluxUiVersion" to "2.5.0",
     "mapstructVersion" to "1.5.5.Final",
@@ -25,7 +25,7 @@ plugins {
 }
 
 group = "com.example"
-version = "1.0.0-SNAPSHOT"
+version = "1.0.0"
 
 java {
     toolchain {
@@ -40,8 +40,8 @@ configurations {
 }
 
 repositories {
-    mavenCentral()
     mavenLocal()
+    mavenCentral()
 }
 
 dependencyManagement {
@@ -56,7 +56,8 @@ configurations.all {
 }
 
 dependencies {
- //   implementation("com.example:person-service:${versions["person-service"]}")
+
+    implementation("com.example:person-api:1.0.0")
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("io.micrometer:micrometer-registry-prometheus")
@@ -126,13 +127,10 @@ val generateTasks = foundSpecifications.map { specFile ->
         .split(Regex("[^A-Za-z0-9]"))
         .filter { it.isNotBlank() }
         .joinToString("") { it.replaceFirstChar(Char::uppercase) }
-
     tasks.register<GenerateTask>(taskName) {
         generatorName.set("spring")
         inputSpec.set(specFile.absolutePath)
-        // важно: String, один общий outDir
         outputDir.set(outRoot.get().asFile.absolutePath)
-
         val base = "com.example.${name.substringBefore('-').lowercase()}"
         configOptions.set(
             mapOf(
@@ -176,27 +174,37 @@ idea {
     }
 }
 
-///*
+/*
 //──────────────────────────────────────────────────────
 //============== Resolve NEXUS credentials =============
 //──────────────────────────────────────────────────────
-//*/
-//
-//file(".env").takeIf { it.exists() }?.readLines()?.forEach {
-//    val (k, v) = it.split("=", limit = 2)
-//    System.setProperty(k.trim(), v.trim())
-//    logger.lifecycle("${k.trim()}=${v.trim()}")
-//}
-//
-//val nexusUrl = System.getenv("NEXUS_URL") ?: System.getProperty("NEXUS_URL")
-//val nexusUser = System.getenv("NEXUS_USERNAME") ?: System.getProperty("NEXUS_USERNAME")
-//val nexusPassword = System.getenv("NEXUS_PASSWORD") ?: System.getProperty("NEXUS_PASSWORD")
-//
-//if (nexusUrl.isNullOrBlank() || nexusUser.isNullOrBlank() || nexusPassword.isNullOrBlank()) {
-//    throw GradleException(
-//        "NEXUS_URL or NEXUS_USER or NEXUS_PASSWORD not set. " +
-//                "Please create a .env file with these properties or set environment variables."
-//    )
-//}
+*/
 
+file(".env").takeIf { it.exists() }?.readLines()?.forEach {
+    val (k, v) = it.split("=", limit = 2)
+    System.setProperty(k.trim(), v.trim())
+    logger.lifecycle("${k.trim()}=${v.trim()}")
+}
 
+val nexusUrl = System.getenv("NEXUS_URL") ?: System.getProperty("NEXUS_URL")
+val nexusUser = System.getenv("NEXUS_USERNAME") ?: System.getProperty("NEXUS_USERNAME")
+val nexusPassword = System.getenv("NEXUS_PASSWORD") ?: System.getProperty("NEXUS_PASSWORD")
+
+if (nexusUrl.isNullOrBlank() || nexusUser.isNullOrBlank() || nexusPassword.isNullOrBlank()) {
+    throw GradleException(
+        "NEXUS_URL or NEXUS_USER or NEXUS_PASSWORD not set. " +
+                "Please create a .env file with these properties or set environment variables."
+    )
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url = uri(nexusUrl)
+        isAllowInsecureProtocol = true
+        credentials {
+            username = nexusUser
+            password = nexusPassword
+        }
+    }
+}
