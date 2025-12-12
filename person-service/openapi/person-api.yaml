@@ -149,10 +149,8 @@ components:
       properties:
         firstName:
           type: string
-          format: email
         lastName:
           type: string
-          format: email
         email:
           type: string
           format: email
@@ -189,10 +187,8 @@ components:
       properties:
         firstName:
           type: string
-          format: email
         lastName:
           type: string
-          format: email
         email:
           type: string
           format: email

@@ -40,8 +40,8 @@ configurations {
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
+    mavenLocal()
 }
 
 dependencyManagement {
@@ -57,7 +57,7 @@ configurations.all {
 
 dependencies {
 
-    implementation("com.example:person-api:1.0.0")
+    implementation("com.example:person-api:1.0.0-SNAPSHOT")
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("io.micrometer:micrometer-registry-prometheus")

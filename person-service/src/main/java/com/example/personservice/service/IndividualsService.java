@@ -1,5 +1,6 @@
 package com.example.personservice.service;
 
+
 import com.example.person.dto.IndividualDto;
 import com.example.person.dto.IndividualWriteDto;
 import com.example.person.dto.IndividualWriteResponseDto;
