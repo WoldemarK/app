@@ -1,6 +1,6 @@
 //package com.example.individualsapi.filter;
 //
-//import com.example.individuals_api.api.dto.UserRegistrationRequest;
+//
 //import io.opentelemetry.api.trace.Span;
 //import io.opentelemetry.api.trace.SpanContext;
 //import org.springframework.core.MethodParameter;
@@ -11,6 +11,7 @@
 //import org.springframework.stereotype.Component;
 //import org.springframework.web.bind.annotation.ControllerAdvice;
 //import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
+//
 //
 //import java.util.HashMap;
 //import java.util.Map;

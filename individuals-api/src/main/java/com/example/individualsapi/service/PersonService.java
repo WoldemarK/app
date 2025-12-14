@@ -19,8 +19,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PersonService {
 
-    private final PersonApiClient personApiClient;
     private final PersonMapper personMapper;
+    private final PersonApiClient personApiClient;
 
     @WithSpan("personService.register")
     public Mono<IndividualWriteResponseDto> register(IndividualWriteDto request) {
