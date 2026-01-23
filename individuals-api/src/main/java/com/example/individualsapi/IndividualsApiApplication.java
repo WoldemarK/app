@@ -1,6 +1,6 @@
 package com.example.individualsapi;
 
-import com.example.individuals.api.AuthApiClient;
+import com.example.keycloak.api.AuthApiClient;
 import com.example.person.api.PersonApiClient;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

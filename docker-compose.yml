@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: person
     volumes:
-      - ./monitoring/keycloak/databases/person:/docker-entrypoint-initdb.d:ro
+      - ./infrastructure/databases/person:/docker-entrypoint-initdb.d:ro
     ports:
       - "5434:5432"
     healthcheck:
@@ -71,7 +71,7 @@ services:
       KC_METRICS_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
     volumes:
-      - ./keycloak/realm-config.json:/opt/keycloak/data/import/realm-config.json
+      - ./infrastructure/keycloak/realm-config.json:/opt/keycloak/data/import/realm-config.json
     depends_on:
       keycloak-postgres:
         condition: service_healthy
@@ -82,7 +82,7 @@ services:
       retries: 30
 
   nexus:
-    image: sonatype/nexus3:3.78.0
+    image: sonatype/nexus3:3.76.0
     container_name: nexus
     ports:
       - "8081:8081"
@@ -103,7 +103,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     healthcheck:
       test: [ "CMD", "wget", "--spider", "http://localhost:9090/-/healthy" ]
       interval: 10s
@@ -116,7 +116,7 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./monitoring/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - ./infrastructure/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3100/ready" ]
       interval: 10s
@@ -128,7 +128,7 @@ services:
     container_name: tempo
     command: [ "-config.file=/etc/tempo/tempo.yaml" ]
     volumes:
-      - ./monitoring/tempo/tempo.yaml:/etc/tempo/tempo.yaml
+      - ./infrastructure/tempo/tempo.yaml:/etc/tempo/tempo.yaml
       - tempo_data:/var/tempo
     ports:
       - "3200:3200"
@@ -142,7 +142,7 @@ services:
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP http
     volumes:
-      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./infrastructure/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/log:/var/log:ro
@@ -174,8 +174,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_METRICS_ENABLED: "true"
     volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards
       - nexus-data:/nexus-data
     healthcheck:
       test: [ "CMD", "wget", "--spider", "http://localhost:3000/api/health" ]

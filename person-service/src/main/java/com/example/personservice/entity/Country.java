@@ -21,28 +21,28 @@ public class Country {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
+    @Column(nullable = false)
     private Integer id;
 
     @ColumnDefault("true")
-    @Column(name = "active", nullable = false)
+    @Column(nullable = false)
     private Boolean active;
 
     @NotNull
     @ColumnDefault("true")
-    @Column(name = "created", nullable = false)
+    @Column(nullable = false)
     private Instant created;
 
     @NotNull
     @ColumnDefault("true")
-    @Column(name = "updated", nullable = false)
+    @Column(nullable = false)
     private Instant updated;
 
     @Size(max = 128)
-    @Column(name = "name", nullable = false, length = 128)
+    @Column(nullable = false, length = 128)
     private String name;
 
     @Size(max = 3)
-    @Column(name = "code", nullable = false, length = 3)
+    @Column(nullable = false, length = 3)
     private String code;
 }

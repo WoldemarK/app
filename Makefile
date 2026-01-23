@@ -61,4 +61,4 @@ infra-logs:
 infra-stop:
 	$(DOCKER_COMPOSE) stop $(INFRA_SERVICES)
 
-rebuild: clean alвl
+rebuild: clean all

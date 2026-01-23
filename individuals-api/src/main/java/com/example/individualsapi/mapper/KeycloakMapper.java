@@ -1,7 +1,8 @@
 package com.example.individualsapi.mapper;
 
-import com.example.individuals.dto.TokenRefreshRequest;
-import com.example.individuals.dto.UserLoginRequest;
+import com.example.individual.dto.TokenRefreshRequest;
+import com.example.individual.dto.UserLoginRequest;
+import com.example.individual.dto.UserLoginRequest;
 import org.mapstruct.*;
 
 import java.util.Map;
@@ -20,9 +21,9 @@ public abstract class KeycloakMapper {
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "email", source = "email")
     @Mapping(target = "password", source = "password")
-    public abstract UserLoginRequest toKeycloakUserLoginRequest(UserLoginRequest request);
+    public abstract com.example.keycloak.dto.UserLoginRequest toKeycloakUserLoginRequest(UserLoginRequest request);
 
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "refreshToken", source = "refreshToken")
-    public abstract TokenRefreshRequest toKeycloakTokenRefreshRequest(TokenRefreshRequest request);
+    public abstract com.example.keycloak.dto.TokenRefreshRequest toKeycloakTokenRefreshRequest(TokenRefreshRequest request);
 }

@@ -62,12 +62,12 @@ paths:
             type: string
             format: uuid
       responses:
-          '201':
-            description: Successfully found
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/IndividualDto'
+        '201':
+          description: Successfully found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndividualDto'
     put:
       summary: Update individual
       operationId: "update"
@@ -149,8 +149,10 @@ components:
       properties:
         firstName:
           type: string
+          format: email
         lastName:
           type: string
+          format: email
         email:
           type: string
           format: email
@@ -187,8 +189,10 @@ components:
       properties:
         firstName:
           type: string
+          format: email
         lastName:
           type: string
+          format: email
         email:
           type: string
           format: email

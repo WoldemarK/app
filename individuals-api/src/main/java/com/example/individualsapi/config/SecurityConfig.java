@@ -1,6 +1,5 @@
 package com.example.individualsapi.config;
 
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -18,30 +17,23 @@ import reactor.core.publisher.Mono;
 @EnableWebFluxSecurity
 public class SecurityConfig {
 
-    private static final String[] permitAllPaths =
-            {
-                    "/actuator/health",
-                    "/actuator/prometheus",
-                    "/actuator/info",
-                    "/v3/api-docs/**",
-                    "/swagger-ui.html",
-                    "/swagger-ui/**",
-                    "/v1/auth/registration",
-                    "/v1/auth/login",
-                    "/v1/auth/refresh-token"
-            };
-    private static final String[] authenticatedPaths =
-            {
-                    "/v1/auth/me"
-            };
-
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchangeSpec -> exchangeSpec
-                        .pathMatchers(permitAllPaths).permitAll()
-                        .pathMatchers(authenticatedPaths).hasAuthority("ROLE_user")
+                        .pathMatchers(
+                                "/actuator/health",
+                                "/actuator/prometheus",
+                                "/actuator/info",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v1/auth/registration",
+                                "/v1/auth/login",
+                                "/v1/auth/refresh-token"
+                        ).permitAll()
+                        .pathMatchers("/v1/auth/me").hasAuthority("ROLE_individual.user")
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -50,13 +42,29 @@ public class SecurityConfig {
     }
 
     private Converter<Jwt, ? extends Mono<? extends AbstractAuthenticationToken>> keycloakAuthenticationConverter() {
-        var converter = new ReactiveJwtAuthenticationConverter();
+        ReactiveJwtAuthenticationConverter converter = new ReactiveJwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter());
         return converter;
     }
 
     private Converter<Jwt, Flux<GrantedAuthority>> jwtGrantedAuthoritiesConverter() {
-        return new AuthoritiesConverter();
+        return new KeycloakJwtAuthenticationConverter();
     }
-
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

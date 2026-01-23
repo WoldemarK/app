@@ -1,33 +1,34 @@
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
-import org.gradle.api.tasks.SourceSet
-import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.api.publish.maven.MavenPublication
 
 val versions = mapOf(
-    "keycloakAdminClientVersion" to "22.0.3",
-    "springdocOpenapiStarterWebfluxUiVersion" to "2.5.0",
     "mapstructVersion" to "1.5.5.Final",
+    "springdocOpenapiStarterWebmvcUiVersion" to "2.5.0",
     "javaxAnnotationApiVersion" to "1.3.2",
     "javaxValidationApiVersion" to "2.0.0.Final",
-    "logbackClassicVersion" to "1.5.18",
-    "nettyResolverVersion" to "4.1.121.Final:osx-aarch_64",
-    "feignMicrometerVersion" to "13.6",
-    "testContainersVersion" to "1.19.3",
     "comGoogleCodeFindbugs" to "3.0.2",
     "springCloudStarterOpenfeign" to "4.1.1",
-    "springdocOpenapiStarterWebmvcUiVersion" to "2.5.0",
+    "javaxServletApiVersion" to "2.5",
+    "logbackClassicVersion" to "1.5.18",
+    "comGoogleCodeFindbugs" to "3.0.2",
+    "springCloudStarterOpenfeign" to "4.1.1",
+    "hibernateEnversVersion" to "6.4.4.Final",
+    "testContainersVersion" to "1.19.3",
+    "junitJupiterVersion" to "5.10.0",
+    "feignMicrometerVersion" to "13.6"
 )
 
 plugins {
-    java
     idea
+    java
     id("org.springframework.boot") version "3.5.0"
     id("io.spring.dependency-management") version "1.1.7"
+    id("maven-publish")
     id("org.openapi.generator") version "7.13.0"
-    `maven-publish`
 }
 
 group = "com.example"
-version = "1.0.0-SNAPSHOT" // ← обязательно SNAPSHOT, если публикуете в maven-snapshots
+version = "1.0.0-SNAPSHOT"
 
 java {
     toolchain {
@@ -35,15 +36,8 @@ java {
     }
 }
 
-configurations {
-    compileOnly {
-        extendsFrom(configurations.annotationProcessor.get())
-    }
-}
-
 repositories {
     mavenCentral()
-    mavenLocal()
 }
 
 dependencyManagement {
@@ -53,22 +47,18 @@ dependencyManagement {
     }
 }
 
-configurations.all {
-    resolutionStrategy.cacheChangingModulesFor(0, "seconds")
-    resolutionStrategy.force("com.google.code.findbugs:jsr305:3.0.2")
-}
+configurations.all { resolutionStrategy.cacheChangingModulesFor(0, "seconds") }
 
 dependencies {
-// SPRING
+    // SPRING
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${versions["springdocOpenapiStarterWebmvcUiVersion"]}")
-    implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
+    implementation("org.springframework.cloud:spring-cloud-starter-openfeign:${versions["springCloudStarterOpenfeign"]}")
 
-// OBSERVABILITY
+    // OBSERVABILITY
     implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("io.github.openfeign:feign-micrometer:${versions["feignMicrometerVersion"]}")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
@@ -79,21 +69,21 @@ dependencies {
     implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
     implementation("ch.qos.logback:logback-classic:${versions["logbackClassicVersion"]}")
 
-// PERSISTENCE
-    implementation("org.hibernate.orm:hibernate-envers:6.6.0.Final")
+    // PERSISTENCE
+    implementation("org.hibernate.orm:hibernate-envers:${versions["hibernateEnversVersion"]}")
     implementation("org.postgresql:postgresql")
     implementation("org.flywaydb:flyway-database-postgresql")
 
-// HELPERS
+    // HELPERS
     compileOnly("org.projectlombok:lombok")
     compileOnly("org.mapstruct:mapstruct:${versions["mapstructVersion"]}")
-    implementation("com.google.code.findbugs:jsr305:3.0.2")
+    compileOnly("com.google.code.findbugs:jsr305:${versions["comGoogleCodeFindbugs"]}")
     annotationProcessor("org.projectlombok:lombok")
     annotationProcessor("org.mapstruct:mapstruct-processor:${versions["mapstructVersion"]}")
     implementation("javax.validation:validation-api:${versions["javaxValidationApiVersion"]}")
     implementation("javax.annotation:javax.annotation-api:${versions["javaxAnnotationApiVersion"]}")
 
-// TEST
+    // TEST
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testCompileOnly("org.projectlombok:lombok")
@@ -102,7 +92,6 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers:${versions["testContainersVersion"]}")
     testImplementation("org.testcontainers:postgresql:${versions["testContainersVersion"]}")
     testImplementation("org.testcontainers:junit-jupiter:${versions["testContainersVersion"]}")
-
 }
 
 tasks.withType<Test> {
@@ -111,27 +100,28 @@ tasks.withType<Test> {
 
 /*
 ──────────────────────────────────────────────────────
-============== Api generation =========
+============== Api generation ==============
 ──────────────────────────────────────────────────────
 */
 
-val openApiDir = file("$rootDir/openapi")
+val openApiDir = file("${rootDir}/openapi")
+
 val foundSpecifications = openApiDir.listFiles { f -> f.extension in listOf("yaml", "yml") } ?: emptyArray()
 logger.lifecycle("Found ${foundSpecifications.size} specifications: " + foundSpecifications.joinToString { it.name })
 
-val outRoot = layout.buildDirectory.dir("generated")
+foundSpecifications.forEach { specFile ->
+    val ourDir = getAbsolutePath(specFile.nameWithoutExtension)
+    val packageName = defineJavaPackageName(specFile.nameWithoutExtension)
 
-val generateTasks = foundSpecifications.map { specFile ->
-    val name = specFile.nameWithoutExtension
-    val taskName = "generate" + name
-        .split(Regex("[^A-Za-z0-9]"))
-        .filter { it.isNotBlank() }
-        .joinToString("") { it.replaceFirstChar(Char::uppercase) }
-    tasks.register<GenerateTask>(taskName) {
+    val taskName = buildGenerateApiTaskName(specFile.nameWithoutExtension)
+    logger.lifecycle("Register task ${taskName} from ${ourDir.get()}")
+    val basePackage = "com.example.${packageName}"
+
+    tasks.register(taskName, GenerateTask::class) {
         generatorName.set("spring")
         inputSpec.set(specFile.absolutePath)
-        outputDir.set(outRoot.get().asFile.absolutePath)
-        val base = "com.example.${name.substringBefore('-').lowercase()}"
+        outputDir.set(ourDir)
+
         configOptions.set(
             mapOf(
                 "library" to "spring-cloud",
@@ -140,110 +130,167 @@ val generateTasks = foundSpecifications.map { specFile ->
                 "openApiNullable" to "false",
                 "useFeignClientUrl" to "true",
                 "useTags" to "true",
-                "apiPackage" to "$base.api",
-                "modelPackage" to "$base.dto",
-                "configPackage" to "$base.config"
+                "apiPackage" to "${basePackage}.api",
+                "modelPackage" to "${basePackage}.dto",
+                "configPackage" to "${basePackage}.config"
             )
         )
+
         doFirst {
             logger.lifecycle("$taskName: starting generation from ${specFile.name}")
         }
     }
 }
 
-val generateAllOpenApi = tasks.register("generateAllOpenApi") {
-    dependsOn(generateTasks)
-    doLast { logger.lifecycle("generateAllOpenApi: all specifications have been generated") }
+
+fun getAbsolutePath(nameWithoutExtension: String): Provider<String> {
+    return layout.buildDirectory
+        .dir("generated-sources/openapi/${nameWithoutExtension}")
+        .map { it.asFile.absolutePath }
 }
 
-configure<SourceSetContainer> {
-    named(SourceSet.MAIN_SOURCE_SET_NAME) {
-        java.srcDir(outRoot.map { it.dir("src/main/java") })
+fun defineJavaPackageName(name: String): String {
+    val beforeDash = name.substringBefore('-')
+    val match = Regex("^[a-z]+]").find(beforeDash)
+    return match?.value ?: beforeDash.lowercase()
+}
+
+fun buildGenerateApiTaskName(name: String): String {
+    return buildTaskName("generate", name)
+}
+
+fun buildJarTaskName(name: String): String {
+    return buildTaskName("jar", name)
+}
+
+fun buildTaskName(taskPrefix: String, name: String): String {
+    val prepareName = name
+        .split(Regex("[^A-Za-z0-9]"))
+        .filter { it.isNotBlank() }
+        .joinToString("") { it.replaceFirstChar(Char::uppercase) }
+
+    return "${taskPrefix}-${prepareName}"
+}
+
+val withoutExtensionNames = foundSpecifications.map { it.nameWithoutExtension }
+
+sourceSets.named("main") {
+    withoutExtensionNames.forEach { name ->
+        java.srcDir(layout.buildDirectory.dir("generated-sources/openapi/$name/src/main/java"))
+    }
+}
+
+tasks.register("generateAllOpenApi") {
+    foundSpecifications.forEach { specFile ->
+        dependsOn(buildGenerateApiTaskName(specFile.nameWithoutExtension))
+    }
+    doLast {
+        logger.lifecycle("generateAllOpenApi: all specifications has been generated")
     }
 }
 
 tasks.named("compileJava") {
-    dependsOn(generateAllOpenApi)
-}
-
-idea {
-    module {
-        val genDir = outRoot.map { it.dir("src/main/java").asFile }.get()
-        generatedSourceDirs = generatedSourceDirs + setOf(genDir)
-        sourceDirs = sourceDirs + setOf(genDir)
-    }
+    dependsOn("generateAllOpenApi")
 }
 
 /*
 ──────────────────────────────────────────────────────
-============== Nexus credentials =============
+============== Building jars ==============
 ──────────────────────────────────────────────────────
 */
 
-// Загрузка .env (только для локальной разработки)
-file("$rootDir/.env").takeIf { it.exists() }?.readLines()?.forEach {
-    val trimmed = it.trim()
-    if (trimmed.isNotEmpty() && !trimmed.startsWith("#")) {
-        val (k, v) = trimmed.split("=", limit = 2)
-        System.setProperty(k.trim(), v.trim())
+tasks.named("build") {
+    dependsOn(generatedJars)
+}
+
+val generatedJars = foundSpecifications.map { specFile ->
+    val name = specFile.nameWithoutExtension
+    val generateTaskName = buildGenerateApiTaskName(name)
+    val jarTaskName = buildJarTaskName(name)
+    val outDirProvider = getAbsolutePath(name)
+    val generateSrcDir = outDirProvider.map { File(it).resolve("src/main/java") }
+
+    val sourcesSetName = name
+
+    val sourceSet = sourceSets.create(sourcesSetName) {
+        java.srcDir(generateSrcDir)
+        compileClasspath += sourceSets["main"].compileClasspath
     }
-}
 
-// Fallback: в Docker-сети используем http://nexus:8081
-val nexusUrl = System.getenv("NEXUS_URL")
-    ?: System.getProperty("NEXUS_URL")
-    ?: "http://nexus:8081"
+    val compileTaskName = "compile${sourcesSetName.replaceFirstChar(Char::uppercase)}Java"
+    tasks.register<JavaCompile>(compileTaskName) {
+        source = sourceSet.java
+        classpath = sourceSet.compileClasspath
+        destinationDirectory.set(layout.buildDirectory.dir("classes/${sourcesSetName}"))
+        dependsOn(generateTaskName)
+    }
 
-val nexusUser = System.getenv("NEXUS_USERNAME")
-    ?: System.getProperty("NEXUS_USERNAME")
-    ?: "admin"
+    tasks.register<Jar>(jarTaskName) {
+        group = "build"
+        archiveBaseName.set(name)
+        destinationDirectory.set(layout.buildDirectory.dir("libs"))
 
-val nexusPassword = System.getenv("NEXUS_PASSWORD")
-    ?: System.getProperty("NEXUS_PASSWORD")
-    ?: "admin"
+        val classOutput = layout.buildDirectory.dir("classes/${sourcesSetName}")
+        from(classOutput)
+        dependsOn(compileTaskName)
 
-// Валидация обязательных параметров
-if (nexusUrl.isBlank() || nexusUser.isBlank() || nexusPassword.isBlank()) {
-    throw GradleException("NEXUS_URL, NEXUS_USERNAME, NEXUS_PASSWORD must be set")
-}
-
-repositories {
-    maven {
-        url = uri(nexusUrl + if (version.toString().endsWith("SNAPSHOT")) {
-            "/repository/maven-snapshots/"
-        } else {
-            "/repository/maven-releases/"
-        })
-        credentials {
-            username = nexusUser
-            password = nexusPassword
+        doFirst {
+            println("Building JAR for $name from compiled classes in ${classOutput.get().asFile}")
         }
-        isAllowInsecureProtocol = true
     }
 }
 
 /*
 ──────────────────────────────────────────────────────
-============== Publishing =============
+============== Resolve NEXUS credentials ==============
+──────────────────────────────────────────────────────
+*/
+
+file(".env").takeIf { it.exists() }?.readLines()?.forEach {
+    val (k, v) = it.split("=", limit = 2)
+    System.setProperty(k.trim(), v.trim())
+    logger.lifecycle("${k.trim()}=${v.trim()}")
+}
+
+val nexusUrl = System.getenv("NEXUS_URL") ?: System.getProperty("NEXUS_URL")
+val nexusUser = System.getenv("NEXUS_USERNAME") ?: System.getProperty("NEXUS_USERNAME")
+val nexusPassword = System.getenv("NEXUS_PASSWORD") ?: System.getProperty("NEXUS_PASSWORD")
+
+if (nexusUrl.isNullOrBlank() || nexusUser.isNullOrBlank() || nexusPassword.isNullOrBlank()) {
+    throw GradleException(
+        "NEXUS details are not set. Create a .env file with correct properties: " +
+                "NEXUS_URL, NEXUS_USERNAME, NEXUS_PASSWORD"
+    )
+}
+
+/*
+──────────────────────────────────────────────────────
+============== Nexus Publishing ==============
 ──────────────────────────────────────────────────────
 */
 
 publishing {
     publications {
         foundSpecifications.forEach { specFile ->
-            val apiName = specFile.nameWithoutExtension
-            val jarTaskName = "jar" // OpenAPI generator создаёт обычный jar
-            val pubName = "publish${apiName.replaceFirstChar(Char::uppercase)}Publication"
+            val name = specFile.nameWithoutExtension
+            val jarBaseName = name
+            var jarFile = file("build/libs")
+                .listFiles()
+                ?.firstOrNull { it.name.contains(name) && (it.extension == "jar" || it.extension == "zip") }
 
-            create<MavenPublication>(pubName) {
-                groupId = "com.example"
-                artifactId = apiName
-                version = project.version.toString()
-                from(components["java"])
+            if (jarFile != null) {
+                logger.lifecycle("publishing: ${jarFile.name}")
 
-                pom {
-                    name.set("Generated API: $apiName")
-                    description.set("Auto-generated from ${specFile.name} OpenAPI spec")
+                create<MavenPublication>("publish${name.replaceFirstChar(Char::uppercase)}Jar") {
+                    artifact(jarFile)
+                    groupId = "com.example"
+                    artifactId = jarBaseName
+                    version = "1.0.0-SNAPSHOT"
+
+                    pom {
+                        this.name.set("Generated API $jarBaseName")
+                        this.description.set("OpenAPI generated code for $jarBaseName")
+                    }
                 }
             }
         }
@@ -252,18 +299,12 @@ publishing {
     repositories {
         maven {
             name = "nexus"
-            url = uri(
-                if (version.toString().endsWith("SNAPSHOT")) {
-                    "$nexusUrl/repository/maven-snapshots/"
-                } else {
-                    "$nexusUrl/repository/maven-releases/"
-                }
-            )
+            url = uri(nexusUrl)
+            isAllowInsecureProtocol = true
             credentials {
                 username = nexusUser
                 password = nexusPassword
             }
-            isAllowInsecureProtocol = true
         }
     }
 }

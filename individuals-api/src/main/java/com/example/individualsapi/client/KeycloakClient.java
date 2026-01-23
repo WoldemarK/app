@@ -1,33 +1,28 @@
 package com.example.individualsapi.client;
 
-import com.example.individuals.dto.TokenRefreshRequest;
-import com.example.individuals.dto.TokenResponse;
-import com.example.individuals.dto.UserLoginRequest;
 import com.example.individualsapi.config.KeycloakProperties;
 import com.example.individualsapi.dto.KeycloakCredentialsRepresentation;
 import com.example.individualsapi.dto.KeycloakUserRepresentation;
-import com.example.individualsapi.exception.AccessDeniedException;
-import com.example.individualsapi.exception.BadRequestException;
-import com.example.individualsapi.exception.ExternalServiceException;
+import com.example.individualsapi.exception.ApiException;
 import com.example.individualsapi.util.UserIdExtractor;
+import com.example.keycloak.dto.TokenRefreshRequest;
+import com.example.keycloak.dto.TokenResponse;
+import com.example.keycloak.dto.UserLoginRequest;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
-import jakarta.ws.rs.NotFoundException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.net.URI;
+import javax.annotation.PostConstruct;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class KeycloakClient {
 
     private static final String BEARER_PREFIX = "Bearer ";
@@ -35,44 +30,67 @@ public class KeycloakClient {
     private final WebClient webClient;
     private final KeycloakProperties props;
 
-    private final String userRegistrationUrl;
-    private final String userPasswordResetUrl;
+    private String userRegistrationUrl;
+    private String userPasswordResetUrl;
+    private String userByIdUrl;
 
-    public KeycloakClient(KeycloakProperties props, WebClient webClient) {
-        this.props = props;
-        this.webClient = webClient;
-        this.userRegistrationUrl = "%s/admin/realms/%s/users".formatted(props.serverUrl(), props.realm());
-        String userByIdUrl = userRegistrationUrl + "/{id}";
+    @PostConstruct
+    public void init() {
+        this.userRegistrationUrl = props.serverUrl() + "/admin/realms/" + props.realm() + "/users";
+        this.userByIdUrl = userRegistrationUrl + "/{id}";
         this.userPasswordResetUrl = userByIdUrl + "/reset-password";
     }
 
     @WithSpan("keycloakClient.login")
     public Mono<TokenResponse> login(UserLoginRequest req) {
-        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        var form = new LinkedMultiValueMap<String, String>();
         form.add("grant_type", "password");
-        form.add("client_id", props.clientId());
         form.add("username", req.getEmail());
         form.add("password", req.getPassword());
-        return requestToken(form);
+        form.add("client_id", props.clientId());
+        addIfNotBlank(form, "client_secret", props.clientSecret());
+
+        return webClient.post()
+                .uri(props.tokenUrl()) // http://localhost:8080/realms/individual/protocol/openid-connect/token
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .bodyValue(form)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, this::toApiException)
+                .bodyToMono(TokenResponse.class);
     }
 
     @WithSpan("keycloakClient.adminLogin")
     public Mono<TokenResponse> adminLogin() {
-        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        var form = new LinkedMultiValueMap<String, String>();
         form.add("grant_type", "password");
         form.add("client_id", props.adminClientId());
         form.add("username", props.adminUsername());
         form.add("password", props.adminPassword());
-        return requestToken(form);
+
+        return webClient.post()
+                .uri(props.tokenUrl())
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .bodyValue(form)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, this::toApiException)
+                .bodyToMono(TokenResponse.class);
     }
 
     @WithSpan("keycloakClient.refreshToken")
     public Mono<TokenResponse> refreshToken(TokenRefreshRequest req) {
-        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        var form = new LinkedMultiValueMap<String, String>();
         form.add("grant_type", "refresh_token");
-        form.add("client_id", props.clientId());
         form.add("refresh_token", req.getRefreshToken());
-        return requestToken(form);
+        form.add("client_id", props.clientId());
+        addIfNotBlank(form, "client_secret", props.clientSecret());
+
+        return webClient.post()
+                .uri(props.tokenUrl())
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .bodyValue(form)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, this::toApiException)
+                .bodyToMono(TokenResponse.class);
     }
 
     @WithSpan("keycloakClient.registerUser")
@@ -82,7 +100,17 @@ public class KeycloakClient {
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + adminToken.getAccessToken())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(user)
-                .exchangeToMono(this::extractIdFromLocationHeader);
+                .exchangeToMono(this::extractIdFromPath);
+    }
+
+    private Mono<String> extractIdFromPath(ClientResponse response) {
+        if (response.statusCode().equals(HttpStatus.CREATED)) {
+            var location = response.headers().asHttpHeaders().getLocation();
+            if (location == null) return Mono.error(new ApiException("Location header missing"));
+            return Mono.just(UserIdExtractor.extractIdFromPath(location.getPath()));
+        }
+        return response.bodyToMono(String.class)
+                .flatMap(body -> Mono.error(new ApiException("User creation failed: " + body)));
     }
 
     @WithSpan("keycloakClient.resetUserPassword")
@@ -93,54 +121,34 @@ public class KeycloakClient {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(dto)
                 .retrieve()
-                .onStatus(HttpStatusCode::isError, this::toApiException)
+                .onStatus(HttpStatusCode::isError, resp ->
+                        resp.bodyToMono(String.class)
+                                .defaultIfEmpty("")
+                                .flatMap(body -> Mono.error(new ApiException(
+                                        "KC reset-password failed " + resp.statusCode() + ": " + body)))
+                )
                 .toBodilessEntity()
                 .then();
     }
 
-    private Mono<TokenResponse> requestToken(MultiValueMap<String, String> formData) {
-        return webClient.post()
-                .uri(props.tokenUrl())
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .bodyValue(formData)
+
+    @WithSpan("keycloakClient.resetUserPassword.executeOnError")
+    public Mono<ResponseEntity<Void>> executeOnError(String userId, String adminAccessToken, Throwable e) {
+        return webClient.delete()
+                .uri(userByIdUrl, userId)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + adminAccessToken)
                 .retrieve()
-                .onStatus(HttpStatusCode::isError, this::toApiException)
-                .bodyToMono(TokenResponse.class);
+                .toBodilessEntity()
+                .then(Mono.error(e));
     }
 
-    private Mono<String> extractIdFromLocationHeader(ClientResponse response) {
-        if (response.statusCode() == HttpStatus.CREATED) {
-            URI location = response.headers().asHttpHeaders().getLocation();
-            if (location == null) {
-                return Mono.error(new BadRequestException("Location header missing in Keycloak user creation response"));
-            }
-            String path = location.getPath();
-            if (path == null || path.isEmpty()) {
-                return Mono.error(new BadRequestException("Location header contains empty path"));
-            }
-            return Mono.justOrEmpty(UserIdExtractor.extractIdFromPath(path))
-                    .switchIfEmpty(Mono.error(new BadRequestException("Could not extract user ID from Location path: " + path)));
-        }
-
-        return response.bodyToMono(String.class)
-                .flatMap(body -> Mono.error(new BadRequestException("Keycloak user creation failed: " + body)));
+    private static void addIfNotBlank(LinkedMultiValueMap<String, String> form, String key, String value) {
+        if (value != null && !value.isBlank()) form.add(key, value);
     }
 
-    private Mono<? extends Throwable> toApiException(ClientResponse response) {
-        HttpStatusCode statusCode = response.statusCode();
-        return response.bodyToMono(String.class)
-                .defaultIfEmpty("No error body")
-                .map(body -> {
-                    String message = "Keycloak error %s: %s".formatted(statusCode, body);
-                    if (statusCode.equals(HttpStatus.UNAUTHORIZED) || statusCode.equals(HttpStatus.FORBIDDEN)) {
-                        return new AccessDeniedException(message);
-                    } else if (statusCode.equals(HttpStatus.NOT_FOUND)) {
-                        return new NotFoundException(message);
-                    } else if (statusCode.is4xxClientError()) {
-                        return new BadRequestException(message);
-                    } else {
-                        return new ExternalServiceException(message);
-                    }
-                });
+    private Mono<? extends Throwable> toApiException(ClientResponse resp) {
+        return resp.bodyToMono(String.class)
+                .defaultIfEmpty(resp.statusCode().toString())
+                .map(body -> new ApiException("Keycloak error " + resp.statusCode() + ": " + body));
     }
 }

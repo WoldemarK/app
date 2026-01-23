@@ -21,17 +21,17 @@ public class BaseEntity {
 
     @NotNull
     @ColumnDefault("true")
-    @Column(name = "active", nullable = false)
+    @Column(nullable = false)
     private Boolean active;
 
     @NotNull
     @ColumnDefault("(now) AT TIME ZONE 'utc'::text")
-    @Column(name = "created", nullable = false)
+    @Column(nullable = false)
     private Instant created;
 
     @NotNull
     @ColumnDefault("(now) AT TIME ZONE 'utc'::text")
-    @Column(name = "updated", nullable = false)
+    @Column(nullable = false)
     private Instant updated;
 
 }

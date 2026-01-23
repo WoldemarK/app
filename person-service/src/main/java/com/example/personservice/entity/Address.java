@@ -21,7 +21,7 @@ public class Address extends BaseEntity {
     private Country country;
 
     @Size(max = 128)
-    @Column(name = "address", nullable = false, length = 128)
+    @Column(nullable = false, length = 128)
     private String address;
 
     @Size(max = 32)
@@ -29,6 +29,6 @@ public class Address extends BaseEntity {
     private String zipCode;
 
     @Size(max = 128)
-    @Column(name = "city", nullable = false, length = 128)
+    @Column(nullable = false, length = 128)
     private String city;
 }

@@ -1,6 +1,5 @@
 package com.example.individualsapi.mapper;
 
-import com.example.individuals.dto.TokenResponse;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -16,6 +15,6 @@ public interface TokenResponseMapper {
     @Mapping(target = "refreshToken", source = "refreshToken")
     @Mapping(target = "expiresIn", source = "expiresIn")
     @Mapping(target = "tokenType", source = "tokenType")
-    TokenResponse toTokenResponse(TokenResponse src);
+    com.example.individual.dto.TokenResponse toTokenResponse(com.example.keycloak.dto.TokenResponse src);
 
 }

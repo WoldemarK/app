@@ -9,10 +9,10 @@ scrape_configs:
     static_configs:
       - targets: [ "prometheus:9090" ]
 
-  - job_name: individuals-api
+  - job_name: api
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: [ 'individuals-api:8091' ]
+      - targets: [ 'api:8091' ]
 
   - job_name: persons-api
     metrics_path: /actuator/prometheus

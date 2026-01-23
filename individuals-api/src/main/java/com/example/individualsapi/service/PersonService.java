@@ -1,7 +1,7 @@
 package com.example.individualsapi.service;
 
-import com.example.individuals.dto.IndividualWriteDto;
-import com.example.individuals.dto.IndividualWriteResponseDto;
+import com.example.individual.dto.IndividualWriteDto;
+import com.example.individual.dto.IndividualWriteResponseDto;
 import com.example.individualsapi.mapper.PersonMapper;
 import com.example.person.api.PersonApiClient;
 import io.opentelemetry.instrumentation.annotations.WithSpan;

@@ -2,6 +2,7 @@ package com.example.personservice.service;
 
 
 import com.example.person.dto.IndividualDto;
+import com.example.person.dto.IndividualPageDto;
 import com.example.person.dto.IndividualWriteDto;
 import com.example.person.dto.IndividualWriteResponseDto;
 import com.example.personservice.entity.Individual;
@@ -27,26 +28,26 @@ public class IndividualsService {
     private final IndividualRepository individualRepository;
 
     @Transactional
-    public UUID register(IndividualWriteDto writeDto) {
+    public IndividualWriteResponseDto register(IndividualWriteDto writeDto) {
         Individual individual = individualMapper.to(writeDto);
+        individualRepository.save(individual);
         log.info("IN - register: individual: [{}] successfully registered", individual.getUser().getEmail());
-        return individualRepository.save(individual).getId();
+        return new IndividualWriteResponseDto(individual.getId().toString());
     }
 
-    public List<IndividualDto> findByEmails(List<String> emails) {
-        return individualRepository.findAllByEmails(emails)
-                .stream()
-                .map(individualMapper::from)
-                .collect(Collectors.toList());
+    public IndividualPageDto findByEmails(List<String> emails) {
+        List<Individual> individuals = individualRepository.findAllByEmails(emails);
+        List<IndividualDto> from = individualMapper.from(individuals);
+        IndividualPageDto individualPageDto = new IndividualPageDto();
+        individualPageDto.setItems(from);
+        return individualPageDto;
     }
 
     public IndividualDto findById(UUID id) {
-        log.info("IN - findById: individual with id = [{}] successfully found", id);
-        return individualRepository.findById(id)
-                .map(individualMapper::from)
+        Individual individual = individualRepository.findById(id)
                 .orElseThrow(() -> new PersonException("Individual not found by id=[%s]", id));
-
-
+        log.info("IN - findById: individual with id = [{}] successfully found", id);
+        return individualMapper.from(individual);
     }
 
     @Transactional

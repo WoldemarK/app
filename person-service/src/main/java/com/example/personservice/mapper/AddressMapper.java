@@ -1,6 +1,5 @@
 package com.example.personservice.mapper;
 
-
 import com.example.person.dto.AddressDto;
 import com.example.person.dto.IndividualWriteDto;
 import com.example.personservice.entity.Address;

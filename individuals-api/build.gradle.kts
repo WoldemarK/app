@@ -3,7 +3,7 @@ import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 
 val versions = mapOf(
-    "person-service" to "1.0.0",
+    "personApiVersion" to "1.0.0-SNAPSHOT",
     "keycloakAdminClientVersion" to "22.0.3",
     "springdocOpenapiStarterWebfluxUiVersion" to "2.5.0",
     "mapstructVersion" to "1.5.5.Final",
@@ -25,7 +25,7 @@ plugins {
 }
 
 group = "com.example"
-version = "1.0.0"
+version = "1.0.0-SNAPSHOT"
 
 java {
     toolchain {
@@ -56,8 +56,7 @@ configurations.all {
 }
 
 dependencies {
-
-    implementation("com.example:person-api:1.0.0-SNAPSHOT")
+    implementation("com.example:person-api:${versions["personApiVersion"]}")
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("io.micrometer:micrometer-registry-prometheus")
@@ -127,10 +126,13 @@ val generateTasks = foundSpecifications.map { specFile ->
         .split(Regex("[^A-Za-z0-9]"))
         .filter { it.isNotBlank() }
         .joinToString("") { it.replaceFirstChar(Char::uppercase) }
+
     tasks.register<GenerateTask>(taskName) {
         generatorName.set("spring")
         inputSpec.set(specFile.absolutePath)
+        // важно: String, один общий outDir
         outputDir.set(outRoot.get().asFile.absolutePath)
+
         val base = "com.example.${name.substringBefore('-').lowercase()}"
         configOptions.set(
             mapOf(
@@ -175,9 +177,9 @@ idea {
 }
 
 /*
-//──────────────────────────────────────────────────────
-//============== Resolve NEXUS credentials =============
-//──────────────────────────────────────────────────────
+──────────────────────────────────────────────────────
+============== Resolve NEXUS credentials =============
+──────────────────────────────────────────────────────
 */
 
 file(".env").takeIf { it.exists() }?.readLines()?.forEach {
