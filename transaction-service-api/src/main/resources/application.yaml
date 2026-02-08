@@ -1,0 +1,81 @@
+spring:
+  application:
+    name: transaction-app
+  datasource:
+    ds0:
+      url: jdbc:postgresql://${POSTGRES_DS0_HOST:postgres-ds0}:5432/wallet_ds0
+      username: ${POSTGRES_DS0_USER:wallet_user}
+      password: ${POSTGRES_DS0_PASSWORD:wallet_pass}
+      driver-class-name: org.postgresql.Driver
+    ds1:
+      url: jdbc:postgresql://${POSTGRES_DS1_HOST:postgres-ds1}:5432/wallet_ds1
+      username: ${POSTGRES_DS1_USER:wallet_user}
+      password: ${POSTGRES_DS1_PASSWORD:wallet_pass}
+      driver-class-name: org.postgresql.Driver
+
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+    consumer:
+      group-id: transaction-app-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+
+server:
+  port: 8093
+  servlet:
+    context-path: /api
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+      roles: ACTUATOR
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${ENV:docker}
+    export:
+      prometheus:
+        enabled: true
+        step: 1m
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTLP_EXPORTER_ENDPOINT:http://alloy:4318}
+      protocol: http/protobuf
+  logs:
+    exporter: otlp
+  metrics:
+    exporter: prometheus
+
+logging:
+  level:
+    root: INFO
+    org.springframework: INFO
+    org.apache.kafka: WARN
+    org.hibernate: WARN
+    com.zaxxer.hikari: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+individuals:
+  api:
+    url: ${INDIVIDUALS_API_URL:http://individuals-service:8081/api/v1}
+    connect-timeout: 5000
+    read-timeout: 10000

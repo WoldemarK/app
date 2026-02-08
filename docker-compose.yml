@@ -1,4 +1,8 @@
+version: "3.9"
+
 services:
+
+  # ==================== PERSON POSTGRES ====================
   person-postgres:
     image: postgres:17
     container_name: person-postgres
@@ -15,7 +19,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 20
+    networks:
+      - app-network
 
+  # ==================== KEYCLOAK POSTGRES ====================
   keycloak-postgres:
     image: postgres:17
     container_name: keycloak-postgres
@@ -24,13 +31,16 @@ services:
       POSTGRES_PASSWORD: keycloak
       POSTGRES_DB: keycloak
     ports:
-      - "5433:5432"
+      - "5435:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U keycloak" ]
       interval: 10s
       timeout: 5s
       retries: 20
+    networks:
+      - app-network
 
+  # ==================== POSTGRES EXPORTERS ====================
   person-postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: person-postgres-exporter
@@ -38,21 +48,26 @@ services:
       person-postgres:
         condition: service_healthy
     environment:
-      DATA_SOURCE_NAME: postgresql://postgres:postgres@person-postgres:5432/postgres?sslmode=disable
+      DATA_SOURCE_NAME: postgresql://postgres:postgres@person-postgres:5432/person?sslmode=disable
     ports:
       - "9188:9187"
-
+    networks:
+      - app-network
+  # ==================== KEYCLOAK EXPORTERS ====================
   keycloak-postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: keycloak-postgres-exporter
     depends_on:
-      person-postgres:
+      keycloak-postgres:
         condition: service_healthy
     environment:
       DATA_SOURCE_NAME: postgresql://keycloak:keycloak@keycloak-postgres:5432/keycloak?sslmode=disable
     ports:
       - "9189:9187"
+    networks:
+      - app-network
 
+  # ==================== KEYCLOAK ====================
   keycloak:
     image: quay.io/keycloak/keycloak:26.2
     container_name: individuals-keycloak
@@ -61,7 +76,6 @@ services:
       - "8080:8080"
       - "9000:9000"
     environment:
-      JAVA_OPTS: -Dkeycloak.migration.usersExportStrategy=REALM_FILE
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_DB: postgres
@@ -80,12 +94,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 30
+    networks:
+      - app-network
 
+  # ==================== NEXUS ====================
   nexus:
     image: sonatype/nexus3:3.76.0
     container_name: nexus
     ports:
-      - "8081:8081"
+      - "8082:8081"
     environment:
       NEXUS_SECURITY_INITIAL_PASSWORD: admin
       NEXUS_SECURITY_RANDOMPASSWORD: false
@@ -96,20 +113,34 @@ services:
       interval: 5s
       timeout: 10s
       retries: 30
+    networks:
+      - app-network
 
+  # ==================== PROMETHEUS ====================
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus
     container_name: prometheus
     ports:
       - "9090:9090"
     volumes:
-      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+      - "--storage.tsdb.retention.time=15d"
+    networks:
+      - app-network
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "http://localhost:9090/-/healthy" ]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy" ]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
+  # ==================== LOKI ====================
   loki:
     image: grafana/loki:2.9.2
     container_name: loki
@@ -117,45 +148,64 @@ services:
       - "3100:3100"
     volumes:
       - ./infrastructure/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki_chunks:/tmp/loki/chunks
+      - loki_index:/tmp/loki/index
+      - loki_rules:/tmp/loki/rules
+    networks:
+      - app-network
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3100/ready" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # ==================== TEMPO ====================
   tempo:
     image: grafana/tempo:2.4.1
     container_name: tempo
     command: [ "-config.file=/etc/tempo/tempo.yaml" ]
     volumes:
-      - ./infrastructure/tempo/tempo.yaml:/etc/tempo/tempo.yaml
+      - ./monitoring/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
       - tempo_data:/var/tempo
     ports:
       - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - app-network
+    restart: unless-stopped
 
+  # ==================== ALLOY ====================
   alloy:
-    image: grafana/alloy:latest
+    image: grafana/alloy:v1.3.0
     container_name: alloy
     user: root
     ports:
-      - "9080:9080" # HTTP interface
-      - "4317:4317" # OTLP gRPC
-      - "4318:4318" # OTLP http
+      - "9080:9080"
+      - "12345:12345"
     volumes:
       - ./infrastructure/alloy/config.alloy:/etc/alloy/config.alloy:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /var/log:/var/log:ro
-    environment:
-      GRAFANA_LOKI_URL: http://loki:3100/loki/api/v1/push
+      - alloy_data:/var/lib/alloy/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:9080
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+    networks:
+      - app-network
+    restart: unless-stopped
 
+  # ==================== GRAFANA ====================
   grafana:
-    image: grafana/grafana:10.3.1
+    image: grafana/grafana-oss:10.3.3
     container_name: grafana
     ports:
       - "3000:3000"
@@ -176,35 +226,16 @@ services:
     volumes:
       - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
       - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards
-      - nexus-data:/nexus-data
+      - grafana-storage:/var/lib/grafana
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "http://localhost:3000/api/health" ]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health" ]
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - app-network
 
-  individuals-api:
-    build:
-      context: ./individuals-api
-      dockerfile: Dockerfile
-    container_name: individuals-api
-    environment:
-      KEYCLOAK_URL: http://keycloak:8080
-      SPRING_PROFILES_ACTIVE: docker
-      PERSONS_API_HOST: persons-api
-      PERSONS_API_URL: http://persons-api:8092
-      OTLP_EXPORTER_ENDPOINT: http://tempo:4318
-    ports:
-      - "8091:8091"
-    depends_on:
-      persons-api:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD-SHELL", "curl -fsS http://localhost:8091/actuator/health || exit 1" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
+  # ==================== PERSONS API ====================
   persons-api:
     build:
       context: ./person-service
@@ -212,7 +243,6 @@ services:
     container_name: persons-api
     ports:
       - "8092:8092"
-    working_dir: /app
     environment:
       POSTGRES_HOST: person-postgres
       POSTGRES_PORT: 5432
@@ -222,16 +252,166 @@ services:
       person-postgres:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "curl", "-i", "http://localhost:8092/actuator/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8092/actuator/health" ]
       interval: 5s
       timeout: 5s
       retries: 30
+    networks:
+      - app-network
 
+  # ==================== TRANSACTION_SERVICE API ====================
+  transaction-service-api:
+    build:
+      context: ./transaction-service-api
+      dockerfile: Dockerfile
+    container_name: transaction-service-api
+    ports:
+      - "8093:8093"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_DS0_HOST: postgres-ds0
+      POSTGRES_DS0_PORT: 5432
+      POSTGRES_DS0_USER: wallet_user
+      POSTGRES_DS0_PASSWORD: wallet_pass
+      POSTGRES_DS1_HOST: postgres-ds1
+      POSTGRES_DS1_PORT: 5432
+      POSTGRES_DS1_USER: wallet_user
+      POSTGRES_DS1_PASSWORD: wallet_pass
+      OTLP_EXPORTER_ENDPOINT: http://tempo:4318
+    depends_on:
+      postgres-ds0:
+        condition: service_healthy
+      postgres-ds1:
+        condition: service_healthy
+    volumes:
+      - transaction-api-logs:/var/log/transaction-service
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U wallet_user -d wallet_ds0 -h localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      - app-network
+    restart: unless-stopped
+  # ==================== INDIVIDUALS API ====================
+  individuals-api:
+    build:
+      context: ./individuals-api
+      dockerfile: Dockerfile
+    container_name: individuals-api
+    ports:
+      - "8091:8091"
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      SPRING_PROFILES_ACTIVE: docker
+      PERSONS_API_URL: http://persons-api:8092
+      OTLP_EXPORTER_ENDPOINT: http://tempo:4318
+    depends_on:
+      persons-api:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8091/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app-network
+
+  # ==================== ZOOKEEPER ====================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: [ "CMD-SHELL", "echo ruok | nc -w 5 localhost 2181 | grep imok || exit 1" ]
+    networks:
+      - app-network
+
+  # ==================== KAFKA ====================
+  kafka1:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka1
+    hostname: kafka1
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://host.docker.internal:9092,PLAINTEXT_INTERNAL://kafka1:29092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      zookeeper:
+        condition: service_started
+    healthcheck:
+      test: [ "CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092" ]
+    networks:
+      - app-network
+
+  # ==================== SCHEMA REGISTRY ====================
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    container_name: schema-registry
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka1:29092
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    depends_on:
+      kafka1:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  # ==================== WALLET POSTGRES ====================
+  postgres-ds0:
+    image: postgres:15
+    container_name: postgres-ds0
+    environment:
+      POSTGRES_DB: wallet_ds0
+      POSTGRES_USER: wallet_user
+      POSTGRES_PASSWORD: wallet_pass
+    ports:
+      - "5436:5432"
+    volumes:
+      - data0:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  postgres-ds1:
+    image: postgres:15
+    container_name: postgres-ds1
+    environment:
+      POSTGRES_DB: wallet_ds1
+      POSTGRES_USER: wallet_user
+      POSTGRES_PASSWORD: wallet_pass
+    ports:
+      - "5437:5432"
+    volumes:
+      - data1:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+# ==================== NETWORKS ====================
+networks:
+  app-network:
+    driver: bridge
+
+# ==================== VOLUMES ====================
 volumes:
-  artifacts:
-  tempo_data:
-  nexus-data:
-  loki_data:
+  kafka_data_1:
+  schema_registry_data_1:
+  prometheus_data:
+  grafana-storage:
   loki_chunks:
   loki_index:
   loki_rules:
+  tempo_data:
+  alloy_data:
+  nexus-data:
+  data0:
+  data1:
+  transaction-api-logs:
