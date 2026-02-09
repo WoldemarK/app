@@ -100,6 +100,7 @@ services:
   # ==================== NEXUS ====================
   nexus:
     image: sonatype/nexus3:3.76.0
+    platform: linux/amd64
     container_name: nexus
     ports:
       - "8082:8081"
